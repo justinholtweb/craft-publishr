@@ -1,0 +1,121 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'overview' %}
+
+{% block content %}
+    <form method="get" class="pub-toolbar">
+        {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
+
+        <div class="select">
+            <select name="stageId" onchange="this.form.submit()">
+                <option value="">{{ "Any stage"|t('publishr') }}</option>
+                {% for stage in stages %}
+                    <option value="{{ stage.id }}" {{ stageId == stage.id ? 'selected' }}>{{ stage.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="select">
+            <select name="assigneeId" onchange="this.form.submit()">
+                <option value="">{{ "Anybody"|t('publishr') }}</option>
+                <option value="me" {{ assigneeId == currentUser.id ? 'selected' }}>{{ "Me"|t('publishr') }}</option>
+                <option value="nobody" {{ assigneeId == 'nobody' ? 'selected' }}>{{ "Nobody"|t('publishr') }}</option>
+                {% for person in people %}
+                    <option value="{{ person.value }}" {{ assigneeId == person.value ? 'selected' }}>{{ person.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="select">
+            <select name="state" onchange="this.form.submit()">
+                <option value="">{{ "Everything"|t('publishr') }}</option>
+                <option value="overdue" {{ state == 'overdue' ? 'selected' }}>{{ "Overdue"|t('publishr') }}</option>
+                {% if isPro %}
+                    <option value="reviewDue" {{ state == 'reviewDue' ? 'selected' }}>{{ "Due a review"|t('publishr') }}</option>
+                {% endif %}
+            </select>
+        </div>
+    </form>
+
+    {% if rows is empty %}
+        <div class="pub-empty">
+            {{ "Nothing matches. If the calendar is empty everywhere, run `php craft publishr/track` to bring the content you already have onto it."|t('publishr') }}
+        </div>
+    {% else %}
+        <form method="post" accept-charset="UTF-8" data-pub-bulk>
+            {{ csrfInput() }}
+            {{ actionInput('publishr/items/bulk') }}
+            {{ redirectInput('publishr/overview') }}
+            <input type="hidden" name="siteId" value="{{ craft.app.sites.getSiteByHandle(siteHandle).id ?? craft.app.sites.primarySite.id }}">
+
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        {% if canManage %}<th style="width:24px;"><input type="checkbox" data-pub-select-all></th>{% endif %}
+                        <th>{{ "Piece"|t('publishr') }}</th>
+                        <th>{{ "Stage"|t('publishr') }}</th>
+                        <th>{{ "Owner"|t('publishr') }}</th>
+                        <th>{{ "Due"|t('publishr') }}</th>
+                        <th>{{ "Status"|t('publishr') }}</th>
+                        {% if isPro %}<th>{{ "Review"|t('publishr') }}</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            {% if canManage %}
+                                <td><input type="checkbox" name="elementIds[]" value="{{ row.entry.getCanonicalId() }}" data-pub-select></td>
+                            {% endif %}
+                            <td>
+                                <a href="{{ row.entry.getCpEditUrl() }}">{{ row.entry.title ?? "Untitled"|t('publishr') }}</a>
+                                {% if row.openComments %}
+                                    <span class="light">· {{ "{n} open"|t('publishr', { n: row.openComments }) }}</span>
+                                {% endif %}
+                                <div class="light" style="font-size:11px;">{{ row.entry.getSection() ? row.entry.getSection().name : '—' }}</div>
+                            </td>
+                            <td>
+                                {% if row.item and row.item.getStage() %}
+                                    <span class="status {{ row.item.getStage().color }}"></span>{{ row.item.getStage().name }}
+                                {% else %}
+                                    <span class="light">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ row.item and row.item.getAssignee() ? row.item.getAssignee().friendlyName : '—' }}</td>
+                            <td class="{{ row.item and row.item.isOverdue() ? 'error' }}">
+                                {{ row.item and row.item.dueDate ? row.item.dueDate|date('j M Y') : '—' }}
+                            </td>
+                            <td><span class="status {{ row.entry.getStatus() }}"></span>{{ row.entry.getStatus()|title }}</td>
+                            {% if isPro %}
+                                <td>{{ row.item and row.item.reviewDue ? row.item.reviewDue|date('j M Y') : '—' }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if canManage %}
+                <div class="pub-toolbar" style="margin-top:16px;">
+                    <div class="select">
+                        <select name="bulkAction">
+                            <option value="stage">{{ "Move to stage"|t('publishr') }}</option>
+                            <option value="assign">{{ "Assign to"|t('publishr') }}</option>
+                            <option value="due">{{ "Set deadline"|t('publishr') }}</option>
+                        </select>
+                    </div>
+                    <div class="select">
+                        <select name="stageId">
+                            {% for stage in stages %}<option value="{{ stage.id }}">{{ stage.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="select">
+                        <select name="assigneeId">
+                            <option value="">{{ "Nobody"|t('publishr') }}</option>
+                            {% for person in people %}<option value="{{ person.value }}">{{ person.label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <input class="text" type="date" name="dueDate">
+                    <button type="submit" class="btn submit">{{ "Apply"|t('publishr') }}</button>
+                </div>
+            {% endif %}
+        </form>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "publishr/_layouts/screen" %}
+{% import "_includes/forms.twig" as forms %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'stages' %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('publishr/stages/save') }}
+        {{ redirectInput('publishr/settings/stages') }}
+        {% if not isNew %}<input type="hidden" name="stageId" value="{{ stage.id }}">{% endif %}
+
+        {{ forms.textField({
+            first: true,
+            label: "Name"|t('publishr'),
+            name: 'name',
+            value: stage.name,
+            errors: stage.getErrors('name'),
+            required: true,
+        }) }}
+
+        {{ forms.textField({
+            label: "Handle"|t('publishr'),
+            name: 'handle',
+            value: stage.handle,
+            errors: stage.getErrors('handle'),
+            class: 'code',
+            required: true,
+        }) }}
+
+        {{ forms.textareaField({
+            label: "What it means"|t('publishr'),
+            instructions: "Shown to editors. A stage nobody can define is a stage everybody uses differently."|t('publishr'),
+            name: 'description',
+            value: stage.description,
+            rows: 2,
+        }) }}
+
+        {{ forms.selectField({
+            label: "Colour"|t('publishr'),
+            name: 'color',
+            options: colors|map(c => { label: c|title, value: c }),
+            value: stage.color,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Where new work starts"|t('publishr'),
+            name: 'isDefault',
+            on: stage.isDefault,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "This is the published stage"|t('publishr'),
+            instructions: "Pieces are moved here automatically when they actually go live."|t('publishr'),
+            name: 'isPublished',
+            on: stage.isPublished,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Check publish requirements before anything moves here"|t('publishr'),
+            name: 'gated',
+            on: stage.gated,
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
+        </div>
+    </form>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'report' %}
+
+{% block screenActions %}
+    <form method="post" accept-charset="UTF-8" style="display:inline;">
+        {{ csrfInput() }}
+        {{ actionInput('publishr/reports/export') }}
+        {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
+        <button type="submit" class="btn">{{ "Export CSV"|t('publishr') }}</button>
+    </form>
+{% endblock %}
+
+{% block content %}
+    {% set coverage = report.coverage %}
+
+    <div class="pub-stats">
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ coverage.percent }}%</span>
+            <span class="pub-stat__l">{{ "of entries are on the calendar ({tracked} of {entries})"|t('publishr', { tracked: coverage.tracked, entries: coverage.entries }) }}</span>
+        </div>
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ report.late|length }}</span>
+            <span class="pub-stat__l">{{ "past their deadline"|t('publishr') }}</span>
+        </div>
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ report.unassigned|length }}</span>
+            <span class="pub-stat__l">{{ "with nobody responsible"|t('publishr') }}</span>
+        </div>
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ report.freshness.due }}</span>
+            <span class="pub-stat__l">{{ "overdue a freshness review"|t('publishr') }}</span>
+        </div>
+    </div>
+
+    {% if coverage.percent < 30 and coverage.entries > 20 %}
+        <div class="pub-note">
+            {{ "Only a small slice of the site is on the calendar, so every number here is about that slice. `php craft publishr/track` brings the rest on."|t('publishr') }}
+        </div>
+    {% endif %}
+
+    <h2>{{ "Where work is sitting"|t('publishr') }}</h2>
+    <table class="data fullwidth">
+        <thead>
+            <tr>
+                <th>{{ "Stage"|t('publishr') }}</th>
+                <th>{{ "Pieces"|t('publishr') }}</th>
+                <th>{{ "Overdue"|t('publishr') }}</th>
+                <th>{{ "Typical age"|t('publishr') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in report.stages %}
+                {% set bottleneck = report.bottlenecks|filter(b => b.stage == row.stage.name)|first %}
+                <tr>
+                    <td><span class="status {{ row.stage.color }}"></span>{{ row.stage.name }}</td>
+                    <td>{{ row.count }}</td>
+                    <td class="{{ row.overdue ? 'error' }}">{{ row.overdue }}</td>
+                    <td class="light">
+                        {% if bottleneck and bottleneck.medianDays %}
+                            {{ "{n} days"|t('publishr', { n: bottleneck.medianDays }) }}
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>{{ "Who is carrying what"|t('publishr') }}</h2>
+    <table class="data fullwidth">
+        <thead>
+            <tr>
+                <th>{{ "Person"|t('publishr') }}</th>
+                <th>{{ "Pieces"|t('publishr') }}</th>
+                <th>{{ "Overdue"|t('publishr') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in report.workload %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.total }}</td>
+                    <td class="{{ row.overdue ? 'error' }}">{{ row.overdue }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if report.throughput|length %}
+        <h2>{{ "Pieces finished, by week"|t('publishr') }}</h2>
+        {% set peak = max(report.throughput) %}
+        <div class="pub-spark">
+            {% for week, count in report.throughput %}
+                <div class="pub-spark__b"
+                     style="height: {{ peak > 0 ? (count / peak * 100)|round : 0 }}%;"
+                     title="{{ week }}: {{ count }}"></div>
+            {% endfor %}
+        </div>
+        <p class="light" style="font-size:11px;">
+            {{ "Counted from when a piece reached the published stage, not from its post date — post dates get backdated."|t('publishr') }}
+        </p>
+    {% endif %}
+
+    {% if report.stale|length %}
+        <h2>{{ "Stalest pages"|t('publishr') }}</h2>
+        <table class="data fullwidth">
+            <thead><tr><th>{{ "Piece"|t('publishr') }}</th><th>{{ "Review was due"|t('publishr') }}</th></tr></thead>
+            <tbody>
+                {% for item in report.stale %}
+                    {% set entry = item.getElement() %}
+                    {% if entry %}
+                        <tr>
+                            <td><a href="{{ entry.getCpEditUrl() }}">{{ entry.title ?? "Untitled"|t('publishr') }}</a></td>
+                            <td class="error">{{ item.reviewDue ? item.reviewDue|date('j M Y') : '—' }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

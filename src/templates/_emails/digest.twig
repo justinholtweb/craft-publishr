@@ -1,0 +1,30 @@
+{# The morning digest. Only ever sent to somebody who has something in it. #}
+{% macro list(items, heading) %}
+    {% if items|length %}
+        <h3 style="margin: 18px 0 6px; font-size: 14px;">{{ heading }}</h3>
+        <ul style="margin: 0; padding-left: 18px;">
+            {% for item in items %}
+                {% set entry = item.getElement() %}
+                {% if entry %}
+                    <li style="margin-bottom: 4px;">
+                        <a href="{{ entry.getCpEditUrl() }}" style="color: #4a4fa8;">{{ entry.title ?? "Untitled"|t('publishr') }}</a>
+                        {% if item.dueDate %}<span style="color: #8f98a3;"> — {{ item.dueDate|date('j M') }}</span>{% endif %}
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endmacro %}
+
+<div style="font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #23262d;">
+    <p style="margin: 0 0 6px;">{{ "Morning {name}."|t('publishr', { name: user.friendlyName }) }}</p>
+    <p style="margin: 0; color: #8f98a3; font-size: 13px;">
+        {{ "{n} things want you over the next {days} days."|t('publishr', { n: data.total, days: horizon }) }}
+    </p>
+
+    {{ _self.list(data.overdue, "Late"|t('publishr')) }}
+    {{ _self.list(data.dueSoon, "Coming up"|t('publishr')) }}
+    {{ _self.list(data.reviews, "Due a freshness review"|t('publishr')) }}
+
+    <p style="margin: 20px 0 0; font-size: 12px; color: #8f98a3;">{{ "Sent by Publishr."|t('publishr') }}</p>
+</div>

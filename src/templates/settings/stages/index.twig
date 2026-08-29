@@ -1,0 +1,47 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'stages' %}
+
+{% block screenActions %}
+    {% if canCreate %}
+        <a class="btn submit add icon" href="{{ url('publishr/settings/stages/new') }}">{{ "New stage"|t('publishr') }}</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% include "publishr/settings/_nav" %}
+
+    {% if not canCreate %}
+        <div class="pub-note pub-note--pro">
+            {{ "Publishr Lite supports {max} stages. Pro lets you design a workflow of your own."|t('publishr', { max: maxStages }) }}
+        </div>
+    {% endif %}
+
+    <table class="data fullwidth">
+        <thead>
+            <tr>
+                <th>{{ "Stage"|t('publishr') }}</th>
+                <th>{{ "Handle"|t('publishr') }}</th>
+                <th>{{ "Pieces"|t('publishr') }}</th>
+                <th>{{ "Notes"|t('publishr') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stage in stages %}
+                <tr>
+                    <td>
+                        <span class="status {{ stage.color }}"></span>
+                        <a href="{{ url('publishr/settings/stages/' ~ stage.id) }}">{{ stage.name }}</a>
+                    </td>
+                    <td><code>{{ stage.handle }}</code></td>
+                    <td>{{ counts[stage.id] ?? 0 }}</td>
+                    <td class="light">
+                        {%- if stage.isDefault %}{{ "Where new work starts."|t('publishr') }} {% endif -%}
+                        {%- if stage.isPublished %}{{ "Reached automatically when a piece goes live."|t('publishr') }} {% endif -%}
+                        {%- if stage.gated %}{{ "Requirements are checked before anything can move here."|t('publishr') }}{% endif -%}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

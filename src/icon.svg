@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="Publishr">
+    <rect width="100" height="100" rx="22.44" fill="#4A4FA8"/>
+    <g fill="#FEFEFE">
+        <!-- The binding rings, so it reads as a wall calendar rather than a spreadsheet. -->
+        <rect x="33" y="17" width="7" height="15" rx="3.5"/>
+        <rect x="60" y="17" width="7" height="15" rx="3.5"/>
+        <!-- The block, with the header band knocked through. -->
+        <path d="M24 27h52a7 7 0 0 1 7 7v42a7 7 0 0 1-7 7H24a7 7 0 0 1-7-7V34a7 7 0 0 1 7-7Zm-1.5 17.5v31.5a2 2 0 0 0 2 2h51a2 2 0 0 0 2-2V44.5Z"/>
+        <!-- Days. The marked one is filled; the rest are outlines, so the eye lands on the deadline. -->
+        <rect x="29" y="52" width="9" height="8" rx="2" opacity=".45"/>
+        <rect x="45.5" y="52" width="9" height="8" rx="2" opacity=".45"/>
+        <rect x="62" y="52" width="9" height="8" rx="2"/>
+        <rect x="29" y="65" width="9" height="8" rx="2" opacity=".45"/>
+        <rect x="45.5" y="65" width="9" height="8" rx="2" opacity=".45"/>
+        <rect x="62" y="65" width="9" height="8" rx="2" opacity=".45"/>
+    </g>
+</svg>

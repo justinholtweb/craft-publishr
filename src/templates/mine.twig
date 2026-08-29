@@ -1,0 +1,67 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'mine' %}
+
+{% block content %}
+    <div class="pub-stats">
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ digest.overdue|length }}</span>
+            <span class="pub-stat__l">{{ "overdue"|t('publishr') }}</span>
+        </div>
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ digest.dueSoon|length }}</span>
+            <span class="pub-stat__l">{{ "due this week"|t('publishr') }}</span>
+        </div>
+        <div class="pub-stat">
+            <span class="pub-stat__n">{{ rows|length }}</span>
+            <span class="pub-stat__l">{{ "on your desk"|t('publishr') }}</span>
+        </div>
+        {% if isPro %}
+            <div class="pub-stat">
+                <span class="pub-stat__n">{{ digest.reviews|length }}</span>
+                <span class="pub-stat__l">{{ "reviews coming up"|t('publishr') }}</span>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if rows is empty %}
+        <div class="pub-empty">{{ "Nothing is assigned to you. Enjoy it."|t('publishr') }}</div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Piece"|t('publishr') }}</th>
+                    <th>{{ "Stage"|t('publishr') }}</th>
+                    <th>{{ "Due"|t('publishr') }}</th>
+                    <th>{{ "Status"|t('publishr') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td>
+                            <a href="{{ row.entry.getCpEditUrl() }}">{{ row.entry.title ?? "Untitled"|t('publishr') }}</a>
+                            {% if row.openComments %}<span class="light">· {{ "{n} open"|t('publishr', { n: row.openComments }) }}</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if row.item and row.item.getStage() %}
+                                <span class="status {{ row.item.getStage().color }}"></span>{{ row.item.getStage().name }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="{{ row.item and row.item.isOverdue() ? 'error' }}">
+                            {% if row.item and row.item.dueDate %}
+                                {% set days = row.item.daysUntilDue() %}
+                                {{ row.item.dueDate|date('j M') }}
+                                <span class="light">
+                                    {%- if days < 0 %} ({{ "{n} days late"|t('publishr', { n: days|abs }) }})
+                                    {%- elseif days == 0 %} ({{ "today"|t('publishr') }})
+                                    {%- else %} ({{ "in {n} days"|t('publishr', { n: days }) }}){% endif %}
+                                </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td><span class="status {{ row.entry.getStatus() }}"></span>{{ row.entry.getStatus()|title }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

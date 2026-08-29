@@ -1,0 +1,163 @@
+{#
+  The Publishr panel on the entry editor.
+
+  Everything in here is a `<div>` and every action posts through `Craft.sendActionRequest`. The
+  panel renders *inside* Craft's element-editor form, and a nested `<form>` does not fail cleanly:
+  the parser drops the tag and keeps the children, leaving a second `action` input in the page
+  form — and Craft takes the last one.
+#}
+
+{% set canEdit = canManage and item %}
+
+<div class="pub-panel"
+     data-pub-panel
+     data-element-id="{{ entry.getCanonicalId() }}"
+     data-site-id="{{ entry.siteId }}">
+
+    <hr>
+    <h2>{{ "Editorial"|t('publishr') }}</h2>
+
+    {% if not item %}
+        <p class="light">{{ "This piece isn’t on the calendar."|t('publishr') }}</p>
+        {% if canManage %}
+            <button type="button" class="btn small" data-pub-action="publishr/items/track">
+                {{ "Add it"|t('publishr') }}
+            </button>
+        {% endif %}
+    {% else %}
+        <div class="field">
+            <div class="heading"><label>{{ "Stage"|t('publishr') }}</label></div>
+            <div class="input">
+                {% if canEdit %}
+                    <div class="select fullwidth">
+                        <select data-pub-stage-select data-current="{{ item.stageId }}">
+                            <option value="">{{ "—"|t('publishr') }}</option>
+                            {% for stage in stages %}
+                                <option value="{{ stage.id }}" {{ item.stageId == stage.id ? 'selected' }}>
+                                    {{ stage.name }}{{ stage.gated ? ' ✓' : '' }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% else %}
+                    <span class="status {{ item.getStage() ? item.getStage().color : 'gray' }}"></span>
+                    {{ item.getStage() ? item.getStage().name : "—"|t('publishr') }}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="field">
+            <div class="heading"><label>{{ "Owner"|t('publishr') }}</label></div>
+            <div class="input">
+                {% if canAssign %}
+                    <div class="select fullwidth">
+                        <select data-pub-assignee>
+                            <option value="">{{ "Nobody"|t('publishr') }}</option>
+                            {% for user in craft.users.limit(200).all() %}
+                                <option value="{{ user.id }}" {{ item.assigneeId == user.id ? 'selected' }}>{{ user.friendlyName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% else %}
+                    {{ item.getAssignee() ? item.getAssignee().friendlyName : "Nobody"|t('publishr') }}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="field">
+            <div class="heading"><label>{{ "Due"|t('publishr') }}</label></div>
+            <div class="input flex">
+                <input class="text" type="date" data-pub-due
+                       value="{{ item.dueDate ? item.dueDate|date('Y-m-d') : '' }}"
+                       {{ canEdit ? '' : 'disabled' }}>
+                {% if canEdit %}
+                    <button type="button" class="btn small" data-pub-action="publishr/items/due" data-pub-reload="no">
+                        {{ "Set"|t('publishr') }}
+                    </button>
+                {% endif %}
+            </div>
+            {% if item.isOverdue() %}
+                <p class="error" style="font-size:11px;">
+                    {{ "{n} days past the deadline."|t('publishr', { n: item.daysUntilDue()|abs }) }}
+                </p>
+            {% endif %}
+        </div>
+
+        {% if isPro and item.reviewDue %}
+            <div class="pub-panel__row">
+                <span class="pub-panel__l">{{ "Next review"|t('publishr') }}</span>
+                <span class="{{ item.isReviewOverdue() ? 'error' }}">{{ item.reviewDue|date('j M Y') }}</span>
+            </div>
+        {% endif %}
+
+        {# ---------------------------------------------------------- requirements #}
+
+        {% if isPro and report and report.results|length %}
+            <h2 style="margin-top:16px;">
+                {{ "Requirements"|t('publishr') }}
+                <span class="light">{{ report.passedCount() }}/{{ report.applicableCount() }}</span>
+            </h2>
+
+            {% for result in report.results %}
+                {% set class = result.status == 'passed' ? 'pub-gate--pass'
+                    : (result.status == 'skipped' ? 'pub-gate--skip'
+                    : (result.severity == 'advisory' ? 'pub-gate--warn' : 'pub-gate--fail')) %}
+                <div class="pub-gate {{ class }}">
+                    <span class="pub-gate__i" aria-hidden="true">
+                        {{- result.status == 'passed' ? '✓' : (result.status == 'skipped' ? '·' : '✕') -}}
+                    </span>
+                    <span>
+                        <strong>{{ result.gateName }}</strong>
+                        {% if result.message %}<span class="pub-gate__d"> — {{ result.message }}</span>{% endif %}
+                        {% if result.detail %}<div class="pub-gate__d">{{ result.detail }}</div>{% endif %}
+                    </span>
+                </div>
+            {% endfor %}
+
+            {% for gate in craft.app.plugins.getPlugin('publishr').gates.getAllGates() %}
+                {% if gate.type == 'checklist' and gate.enabled and gate.settings.items ?? false %}
+                    <div style="margin-top:8px;">
+                        {% set ticks = (item.gateState.ticks[gate.handle] ?? []) %}
+                        {% for line in gate.settings.items %}
+                            <label class="pub-gate">
+                                <input type="checkbox"
+                                       data-pub-tick
+                                       data-gate="{{ gate.handle }}"
+                                       value="{{ line }}"
+                                       {{ line in ticks ? 'checked' }}
+                                       {{ canEdit ? '' : 'disabled' }}>
+                                <span>{{ line }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+            {% if canEdit %}
+                <button type="button" class="btn small" data-pub-action="publishr/items/check" data-pub-reload="no" style="margin-top:8px;">
+                    {{ "Check again"|t('publishr') }}
+                </button>
+            {% endif %}
+        {% endif %}
+
+        {# -------------------------------------------------------------- comments #}
+
+        <h2 style="margin-top:16px;">{{ "Comments"|t('publishr') }}</h2>
+
+        {% for comment in comments %}
+            {% include "publishr/_partials/comment" with { comment: comment, canComment: canComment, depth: 0 } only %}
+        {% else %}
+            <p class="light" style="font-size:12px;">{{ "Nothing yet."|t('publishr') }}</p>
+        {% endfor %}
+
+        {% if canComment %}
+            <div style="margin-top:8px;">
+                <textarea class="text fullwidth" rows="2" data-pub-comment-body
+                          placeholder="{{ 'Note for the desk. @name to tell somebody.'|t('publishr') }}"></textarea>
+                <button type="button" class="btn small submit" data-pub-action="publishr/comments/save" style="margin-top:5px;">
+                    {{ "Post"|t('publishr') }}
+                </button>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>

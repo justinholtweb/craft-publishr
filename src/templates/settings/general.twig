@@ -1,0 +1,149 @@
+{% extends "publishr/_layouts/screen" %}
+{% import "_includes/forms.twig" as forms %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'general' %}
+
+{% block content %}
+    {% include "publishr/settings/_nav" %}
+
+    <div class="pub-note {{ hasAlarmClock ? '' : 'pub-note--pro' }}">{{ alarmClock }}</div>
+
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('publishr/settings/save') }}
+        {{ redirectInput('publishr/settings/general') }}
+
+        <h2>{{ "What Publishr looks after"|t('publishr') }}</h2>
+
+        {{ forms.checkboxSelectField({
+            label: "Sections"|t('publishr'),
+            instructions: "Leave every box unticked to manage the whole site. Naming sections makes the calendar faster and keeps 40,000 products off it."|t('publishr'),
+            name: 'settings[sections]',
+            options: sections|map(s => { label: s.name, value: s.uid }),
+            values: settings.sections,
+            showAllOption: false,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Track new entries automatically"|t('publishr'),
+            instructions: "Off means a piece only appears on the calendar once somebody adds it."|t('publishr'),
+            name: 'settings[autoTrack]',
+            on: settings.autoTrack,
+        }) }}
+
+        <hr>
+        <h2>{{ "Calendar"|t('publishr') }}</h2>
+
+        {{ forms.checkboxSelectField({
+            label: "Lanes shown by default"|t('publishr'),
+            name: 'settings[defaultLanes]',
+            options: lanes|map(l => { label: laneLabels[l], value: l }),
+            values: settings.defaultLanes,
+            showAllOption: false,
+        }) }}
+
+        {{ forms.selectField({
+            label: "Week starts on"|t('publishr'),
+            name: 'settings[weekStartDay]',
+            options: [
+                { label: "Sunday"|t('publishr'), value: 0 },
+                { label: "Monday"|t('publishr'), value: 1 },
+                { label: "Saturday"|t('publishr'), value: 6 },
+            ],
+            value: settings.weekStartDay,
+        }) }}
+
+        {{ forms.textField({
+            label: "Most pips in a day"|t('publishr'),
+            instructions: "Beyond this a cell says “+ 6 more”."|t('publishr'),
+            name: 'settings[maxPerDay]',
+            type: 'number',
+            value: settings.maxPerDay,
+            size: 4,
+        }) }}
+
+        <hr>
+        <h2>{{ "Workflow"|t('publishr') }}</h2>
+
+        {{ forms.lightswitchField({
+            label: "Move to the published stage when a piece goes live"|t('publishr'),
+            instructions: "Alarm Clock notices the moment it happens. Without it, the sweep catches up."|t('publishr'),
+            name: 'settings[advanceOnPublish]',
+            on: settings.advanceOnPublish,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Clear the deadline once it goes live"|t('publishr'),
+            name: 'settings[clearDueOnPublish]',
+            on: settings.clearDueOnPublish,
+        }) }}
+
+        <hr>
+        <h2>{{ "Requirements"|t('publishr') }}</h2>
+
+        {% if not isPro %}
+            <div class="pub-note pub-note--pro">{{ "Publish requirements are a Pro feature."|t('publishr') }}</div>
+        {% endif %}
+
+        {{ forms.lightswitchField({
+            label: "Re-check requirements whenever an entry is saved"|t('publishr'),
+            name: 'settings[checkGatesOnSave]',
+            on: settings.checkGatesOnSave,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Refuse to publish an entry whose requirements fail"|t('publishr'),
+            instructions: "Off by default. Blocking a stage move is a conversation; blocking a save is a wall. Even on, it only bites when an entry would become public, and never for somebody who can override."|t('publishr'),
+            name: 'settings[blockPublish]',
+            on: settings.blockPublish,
+            disabled: not isPro,
+            warning: settings.blockPublish ? "This is on. Entries failing a required check cannot be published."|t('publishr') : null,
+        }) }}
+
+        <hr>
+        <h2>{{ "Freshness"|t('publishr') }}</h2>
+
+        {{ forms.lightswitchField({
+            label: "Keep review-by dates"|t('publishr'),
+            name: 'settings[freshnessEnabled]',
+            on: settings.freshnessEnabled,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textField({
+            label: "Reviews scheduled per sweep"|t('publishr'),
+            instructions: "A policy applied to a long archive matches thousands at once. Batches keep the first sweep from timing out."|t('publishr'),
+            name: 'settings[maxReviewsPerSweep]',
+            type: 'number',
+            value: settings.maxReviewsPerSweep,
+            size: 6,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textField({
+            label: "Days of history to keep"|t('publishr'),
+            instructions: "0 keeps everything."|t('publishr'),
+            name: 'settings[historyRetentionDays]',
+            type: 'number',
+            value: settings.historyRetentionDays,
+            size: 6,
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
+        </div>
+    </form>
+
+    <hr>
+
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('publishr/settings/sweep') }}
+        {{ redirectInput('publishr/settings/general') }}
+        <button type="submit" class="btn">{{ "Run the sweep now"|t('publishr') }}</button>
+        <p class="light" style="font-size:12px;">
+            {{ "Advances published pieces, schedules reviews, raises reminders and sends what is waiting. Put `php craft publishr/sweep` on cron for the real thing."|t('publishr') }}
+        </p>
+    </form>
+{% endblock %}

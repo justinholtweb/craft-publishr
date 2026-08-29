@@ -1,0 +1,100 @@
+{% extends "publishr/_layouts/screen" %}
+{% import "_includes/forms.twig" as forms %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'notifications' %}
+
+{% block content %}
+    {% include "publishr/settings/_nav" %}
+
+    {% if not allowsNotifications %}
+        <div class="pub-note pub-note--pro">{{ "Notifications and the digest are Pro features. Everything below is saved, and starts working the moment the licence is upgraded."|t('publishr') }}</div>
+    {% endif %}
+
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('publishr/settings/save') }}
+        {{ redirectInput('publishr/settings/notifications') }}
+
+        {{ forms.lightswitchField({
+            label: "Send notifications"|t('publishr'),
+            name: 'settings[notificationsEnabled]',
+            on: settings.notificationsEnabled,
+        }) }}
+
+        {{ forms.textField({
+            label: "Warn this many days before a deadline"|t('publishr'),
+            name: 'settings[dueSoonDays]',
+            type: 'number',
+            value: settings.dueSoonDays,
+            size: 4,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Send through the queue"|t('publishr'),
+            instructions: "On, so a stage move never waits on an SMTP handshake."|t('publishr'),
+            name: 'settings[queueNotifications]',
+            on: settings.queueNotifications,
+        }) }}
+
+        <hr>
+        <h2>{{ "Digest"|t('publishr') }}</h2>
+
+        {{ forms.lightswitchField({
+            label: "Send a daily digest"|t('publishr'),
+            instructions: "Only to people who have something in it — a mail that says “nothing to report” is a mail people filter."|t('publishr'),
+            name: 'settings[digestEnabled]',
+            on: settings.digestEnabled,
+        }) }}
+
+        {{ forms.textField({
+            label: "Days it looks ahead"|t('publishr'),
+            name: 'settings[digestHorizonDays]',
+            type: 'number',
+            value: settings.digestHorizonDays,
+            size: 4,
+        }) }}
+
+        <p class="light" style="font-size:12px;">
+            {{ "The digest goes out when `php craft publishr/sweep --digest=1` runs. Put that on cron once a morning."|t('publishr') }}
+        </p>
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
+        </div>
+    </form>
+
+    {% if problems|length %}
+        <hr>
+        <h2>{{ "Messages that didn’t go out"|t('publishr') }}</h2>
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "When"|t('publishr') }}</th>
+                    <th>{{ "Event"|t('publishr') }}</th>
+                    <th>{{ "Tries"|t('publishr') }}</th>
+                    <th>{{ "Error"|t('publishr') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in problems %}
+                    <tr>
+                        <td class="light">{{ row.dateCreated }}</td>
+                        <td>{{ row.event }}</td>
+                        <td>{{ row.attempts }}</td>
+                        <td class="light">{{ row.error|slice(0, 120) }}</td>
+                        <td class="rightalign">
+                            <form method="post" accept-charset="UTF-8" style="display:inline;">
+                                {{ csrfInput() }}
+                                {{ actionInput('publishr/settings/retry-notification') }}
+                                {{ redirectInput('publishr/settings/notifications') }}
+                                <input type="hidden" name="id" value="{{ row.id }}">
+                                <button type="submit" class="btn small">{{ "Try again"|t('publishr') }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

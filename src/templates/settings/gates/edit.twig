@@ -1,0 +1,96 @@
+{% extends "publishr/_layouts/screen" %}
+{% import "_includes/forms.twig" as forms %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'gates' %}
+
+{% block content %}
+    {% if gate.type is empty %}
+        <h2>{{ "What should this check?"|t('publishr') }}</h2>
+        <table class="data fullwidth">
+            <tbody>
+                {% for type in types %}
+                    <tr>
+                        <td>
+                            <a href="{{ url('publishr/settings/gates/new', { type: type.handle }) }}"><strong>{{ type.name }}</strong></a>
+                            <div class="light">{{ type.description }}</div>
+                            {% if not type.available %}
+                                <div class="light">{{ type.unavailableReason }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% if not typeAvailable %}
+            <div class="pub-note">{{ unavailableReason }}</div>
+        {% endif %}
+
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('publishr/gates/save') }}
+            {{ redirectInput('publishr/settings/gates') }}
+            <input type="hidden" name="type" value="{{ gate.type }}">
+            {% if not isNew %}<input type="hidden" name="gateId" value="{{ gate.id }}">{% endif %}
+
+            {{ forms.textField({
+                first: true,
+                label: "Name"|t('publishr'),
+                instructions: "What an editor sees when it fails. Write it as the thing to do."|t('publishr'),
+                name: 'name',
+                value: gate.name,
+                errors: gate.getErrors('name'),
+                required: true,
+            }) }}
+
+            {{ forms.textField({
+                label: "Handle"|t('publishr'),
+                name: 'handle',
+                value: gate.handle,
+                errors: gate.getErrors('handle'),
+                class: 'code',
+                required: true,
+            }) }}
+
+            {{ typeSettingsHtml|raw }}
+
+            {{ forms.selectField({
+                label: "Severity"|t('publishr'),
+                name: 'severity',
+                options: [
+                    { label: "Required — blocks sign-off"|t('publishr'), value: 'required' },
+                    { label: "Advisory — warns only"|t('publishr'), value: 'advisory' },
+                ],
+                value: gate.severity,
+            }) }}
+
+            {{ forms.checkboxSelectField({
+                label: "Sections"|t('publishr'),
+                instructions: "Leave empty to apply everywhere."|t('publishr'),
+                name: 'sectionUids',
+                options: sections|map(s => { label: s.name, value: s.uid }),
+                values: gate.sectionUids,
+                showAllOption: false,
+            }) }}
+
+            {{ forms.checkboxSelectField({
+                label: "Stages"|t('publishr'),
+                instructions: "Leave empty to check on every gated stage."|t('publishr'),
+                name: 'stageHandles',
+                options: stages|filter(s => s.gated)|map(s => { label: s.name, value: s.handle }),
+                values: gate.stageHandles,
+                showAllOption: false,
+            }) }}
+
+            {{ forms.lightswitchField({
+                label: "Enabled"|t('publishr'),
+                name: 'enabled',
+                on: gate.enabled,
+            }) }}
+
+            <div class="buttons">
+                <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}

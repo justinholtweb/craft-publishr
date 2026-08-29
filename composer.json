@@ -1,0 +1,56 @@
+{
+    "name": "justinholtweb/craft-publishr",
+    "description": "Editorial calendar and content governance for Craft CMS — a month view of everything in flight, custom editorial stages, assignments, due dates, publish requirements and freshness reviews.",
+    "version": "5.0.0",
+    "type": "craft-plugin",
+    "keywords": [
+        "craftcms",
+        "craft-plugin",
+        "editorial",
+        "calendar",
+        "workflow",
+        "governance",
+        "content-strategy",
+        "assignments",
+        "publishing"
+    ],
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Justin Holt",
+            "homepage": "https://justinholt.com"
+        }
+    ],
+    "support": {
+        "email": "justin@justinholt.com",
+        "issues": "https://github.com/justinholtweb/craft-publishr/issues",
+        "source": "https://github.com/justinholtweb/craft-publishr"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*",
+        "craftcms/cms": "^5.3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "justinholtweb\\publishr\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "craftcms/plugin-installer": true,
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "extra": {
+        "name": "Publishr",
+        "handle": "publishr",
+        "developer": "Justin Holt",
+        "developerUrl": "https://justinholt.com",
+        "documentationUrl": "https://justinholt.com/plugins/craft-publishr/docs",
+        "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-publishr/main/CHANGELOG.md",
+        "class": "justinholtweb\\publishr\\Plugin"
+    }
+}

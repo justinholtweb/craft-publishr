@@ -1,0 +1,97 @@
+{% extends "publishr/_layouts/screen" %}
+{% import "_includes/forms.twig" as forms %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'policies' %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('publishr/policies/save') }}
+        {{ redirectInput('publishr/settings/policies') }}
+        {% if not isNew %}<input type="hidden" name="policyId" value="{{ policy.id }}">{% endif %}
+
+        {{ forms.textField({
+            first: true,
+            label: "Name"|t('publishr'),
+            name: 'name',
+            value: policy.name,
+            errors: policy.getErrors('name'),
+            required: true,
+        }) }}
+
+        {{ forms.textField({
+            label: "Handle"|t('publishr'),
+            name: 'handle',
+            value: policy.handle,
+            errors: policy.getErrors('handle'),
+            class: 'code',
+            required: true,
+        }) }}
+
+        {{ forms.textField({
+            label: "Good for this many days"|t('publishr'),
+            instructions: "Counted from the last review, or from the post date when there has never been one."|t('publishr'),
+            name: 'intervalDays',
+            type: 'number',
+            value: policy.intervalDays,
+            size: 6,
+        }) }}
+
+        {{ forms.textField({
+            label: "Warn this many days early"|t('publishr'),
+            name: 'remindDaysBefore',
+            type: 'number',
+            value: policy.remindDaysBefore,
+            size: 6,
+        }) }}
+
+        {{ forms.checkboxSelectField({
+            label: "Sections"|t('publishr'),
+            instructions: "Empty covers every section."|t('publishr'),
+            name: 'sectionUids',
+            options: sections|map(s => { label: s.name, value: s.uid }),
+            values: policy.sectionUids,
+            showAllOption: false,
+        }) }}
+
+        {{ forms.checkboxSelectField({
+            label: "Entry types"|t('publishr'),
+            instructions: "Empty covers every type in those sections."|t('publishr'),
+            name: 'entryTypeUids',
+            options: entryTypes|map(t => { label: t.name, value: t.uid }),
+            values: policy.entryTypeUids,
+            showAllOption: false,
+        }) }}
+
+        {{ forms.selectField({
+            label: "Who reviews it"|t('publishr'),
+            instructions: "Only ever fills in an empty owner. A policy never takes a live piece away from the person still working on it."|t('publishr'),
+            name: 'assignTo',
+            options: [
+                { label: "Whoever already owns it"|t('publishr'), value: 'current' },
+                { label: "The entry’s author"|t('publishr'), value: 'author' },
+                { label: "One named person"|t('publishr'), value: 'user' },
+                { label: "Nobody"|t('publishr'), value: 'nobody' },
+            ],
+            value: policy.assignTo,
+        }) }}
+
+        {{ forms.textField({
+            label: "Named reviewer’s user ID"|t('publishr'),
+            instructions: "Only used when “one named person” is chosen above."|t('publishr'),
+            name: 'assigneeId',
+            value: policy.assigneeId,
+            size: 8,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Enabled"|t('publishr'),
+            name: 'enabled',
+            on: policy.enabled,
+        }) }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
+        </div>
+    </form>
+{% endblock %}

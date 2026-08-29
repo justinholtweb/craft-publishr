@@ -1,0 +1,60 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'board' %}
+
+{% block screenActions %}
+    <a class="btn" href="{{ url('publishr/calendar') }}">{{ "Calendar"|t('publishr') }}</a>
+{% endblock %}
+
+{% block content %}
+    <form method="get" class="pub-toolbar">
+        {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
+        <div class="select">
+            <select name="assigneeId" onchange="this.form.submit()">
+                <option value="">{{ "Everybody"|t('publishr') }}</option>
+                <option value="me" {{ assigneeId == currentUser.id ? 'selected' }}>{{ "Just mine"|t('publishr') }}</option>
+            </select>
+        </div>
+    </form>
+
+    <div class="pub-board">
+        {% for column in columns %}
+            <div class="pub-col">
+                <div class="pub-col__h">
+                    <span>{{ column.stage.name }}</span>
+                    <span class="pub-col__n">{{ column.total }}</span>
+                </div>
+
+                {% for card in column.cards %}
+                    <div class="pub-card pub-c-{{ column.stage.color }}">
+                        <a class="pub-card__t" href="{{ card.entry.getCpEditUrl() }}">{{ card.entry.title ?? "Untitled"|t('publishr') }}</a>
+                        <div class="pub-card__m">
+                            {% if card.item and card.item.getAssignee() %}
+                                <span>{{ card.item.getAssignee().friendlyName }}</span>
+                            {% else %}
+                                <span>{{ "Unassigned"|t('publishr') }}</span>
+                            {% endif %}
+
+                            {% if card.item and card.item.dueDate %}
+                                <span class="{{ card.item.isOverdue() ? 'is-late' }}">
+                                    {{ card.item.dueDate|date('j M') }}
+                                </span>
+                            {% endif %}
+
+                            {% if card.openComments %}
+                                <span>{{ "{n} open"|t('publishr', { n: card.openComments }) }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="light" style="font-size:12px;">{{ "Nothing here."|t('publishr') }}</p>
+                {% endfor %}
+
+                {% if column.total > column.cards|length %}
+                    <p class="light" style="font-size:11px;">
+                        {{ "Showing {n} of {total}."|t('publishr', { n: column.cards|length, total: column.total }) }}
+                    </p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "publishr/_layouts/screen" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set selectedSubnavItem = 'calendar' %}
+
+{% set query = craft.app.request.queryParams|filter((v, k) => k not in ['year', 'month', 'p']) %}
+{% set base = url('publishr/calendar', query) %}
+
+{% macro monthUrl(step, query) %}
+    {{ url('publishr/calendar/' ~ step.year ~ '/' ~ step.month, query|filter((v, k) => k not in ['year', 'month', 'p'])) }}
+{% endmacro %}
+
+{% block screenActions %}
+    <a class="btn" href="{{ url('publishr/board', query) }}">{{ "Board"|t('publishr') }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="pub-toolbar">
+        <a class="btn" href="{{ _self.monthUrl(prev, craft.app.request.queryParams) }}" aria-label="{{ 'Previous month'|t('publishr') }}">&larr;</a>
+        <span class="pub-month">{{ monthLabel }}</span>
+        <a class="btn" href="{{ _self.monthUrl(next, craft.app.request.queryParams) }}" aria-label="{{ 'Next month'|t('publishr') }}">&rarr;</a>
+        <a class="btn" href="{{ url('publishr/calendar') }}">{{ "Today"|t('publishr') }}</a>
+
+        <span class="pub-toolbar__spacer"></span>
+
+        <div class="pub-lanes">
+            {% for lane in allLanes %}
+                {% set on = lane in lanes %}
+                {% set next_lanes = on ? lanes|filter(l => l != lane) : lanes|merge([lane]) %}
+                <a class="pub-lane-toggle {{ on ? 'is-on' }}"
+                   href="{{ url('publishr/calendar/' ~ year ~ '/' ~ month, craft.app.request.queryParams|merge({ lanes: next_lanes|join(',') })) }}">
+                    {{ laneLabels[lane] }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <form method="get" action="{{ url('publishr/calendar/' ~ year ~ '/' ~ month) }}" class="pub-toolbar">
+        <input type="hidden" name="lanes" value="{{ lanes|join(',') }}">
+        {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
+
+        <div class="select">
+            <select name="stageIds[]">
+                <option value="">{{ "Any stage"|t('publishr') }}</option>
+                {% for stage in stages %}
+                    <option value="{{ stage.id }}" {{ stage.id in (filters.stageIds ?? []) ? 'selected' }}>{{ stage.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="select">
+            <select name="sectionIds[]">
+                <option value="">{{ "Any section"|t('publishr') }}</option>
+                {% for section in sections %}
+                    <option value="{{ section.id }}" {{ section.id in (filters.sectionIds ?? []) ? 'selected' }}>{{ section.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="select">
+            <select name="assigneeId">
+                <option value="">{{ "Anybody"|t('publishr') }}</option>
+                <option value="me" {{ (filters.assigneeId ?? null) == currentUser.id ? 'selected' }}>{{ "Me"|t('publishr') }}</option>
+            </select>
+        </div>
+
+        <input class="text" type="search" name="search" value="{{ filters.search ?? '' }}" placeholder="{{ 'Search'|t('publishr') }}">
+        <button type="submit" class="btn">{{ "Filter"|t('publishr') }}</button>
+    </form>
+
+    {% if lanes is empty %}
+        <div class="pub-empty">{{ "Every lane is switched off, so there is nothing to draw. Turn one back on above."|t('publishr') }}</div>
+    {% else %}
+        <table class="pub-grid" data-pub-calendar>
+            <thead>
+                <tr>
+                    {% for name in dayNames %}<th scope="col">{{ name }}</th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for week in weeks %}
+                    <tr>
+                        {% for day in week %}
+                            {% set key = day|date('Y-m-d') %}
+                            {% set events = days[key] ?? [] %}
+                            {% set outside = day|date('n') != month %}
+                            <td>
+                                <div class="pub-day {{ outside ? 'pub-day--outside' }} {{ key == today ? 'pub-day--today' }}"
+                                     data-pub-day="{{ key }}">
+                                    <span class="pub-day__n">{{ day|date('j') }}</span>
+                                    <div data-pub-day-pips>
+                                        {% for event in events|slice(0, maxPerDay) %}
+                                            {% include "publishr/_partials/pip" with { event: event, date: key } only %}
+                                        {% endfor %}
+                                    </div>
+                                    {% if events|length > maxPerDay %}
+                                        <div class="pub-day__more">{{ "+{n} more"|t('publishr', { n: events|length - maxPerDay }) }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

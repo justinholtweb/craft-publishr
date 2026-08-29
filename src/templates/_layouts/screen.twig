@@ -1,0 +1,21 @@
+{% extends "_layouts/cp" %}
+
+{# The shell every Publishr screen shares: the asset bundle, the site switcher and the toolbar. #}
+
+{% do view.registerAssetBundle("justinholtweb\\publishr\\web\\assets\\cp\\CpAsset") %}
+
+{% block actionButton %}
+    {% if siteOptions is defined and siteOptions|length > 1 %}
+        <div class="flex">
+            <label class="visually-hidden" for="pub-site">{{ "Site"|t('publishr') }}</label>
+            <div class="select">
+                <select id="pub-site" onchange="window.location.search = '?site=' + this.value">
+                    {% for option in siteOptions %}
+                        <option value="{{ option.value }}" {{ option.value == siteHandle ? 'selected' }}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    {% endif %}
+    {% block screenActions %}{% endblock %}
+{% endblock %}

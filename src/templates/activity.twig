@@ -1,0 +1,27 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'overview' %}
+
+{% block content %}
+    {% if entries is empty %}
+        <div class="pub-empty">{{ "Nothing has happened yet."|t('publishr') }}</div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "When"|t('publishr') }}</th>
+                    <th>{{ "What"|t('publishr') }}</th>
+                    <th>{{ "Note"|t('publishr') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td class="light" style="white-space:nowrap;">{{ entry.dateCreated ? entry.dateCreated|datetime('short') : '—' }}</td>
+                        <td>{{ entry.describe() }}</td>
+                        <td class="light">{{ entry.note ? entry.note|slice(0, 160) : '' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'settings' %}
+{% set selectedTab = 'gates' %}
+
+{% block screenActions %}
+    {% if allowed %}
+        <a class="btn submit add icon" href="{{ url('publishr/settings/gates/new') }}">{{ "New requirement"|t('publishr') }}</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% include "publishr/settings/_nav" %}
+
+    {% if not allowed %}
+        <div class="pub-note pub-note--pro">{{ "Publish requirements are a Pro feature."|t('publishr') }}</div>
+    {% endif %}
+
+    <p class="light">
+        {{ "A requirement is a question with a yes/no answer about a piece. Required ones block a move into a gated stage; advisory ones only warn."|t('publishr') }}
+    </p>
+
+    {% if gates is empty %}
+        <div class="pub-empty">{{ "No requirements yet."|t('publishr') }}</div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Requirement"|t('publishr') }}</th>
+                    <th>{{ "Type"|t('publishr') }}</th>
+                    <th>{{ "Severity"|t('publishr') }}</th>
+                    <th>{{ "Applies to"|t('publishr') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gate in gates %}
+                    {% set type = types|filter(t => t.handle == gate.type)|first %}
+                    <tr class="{{ gate.enabled ? '' : 'disabled' }}">
+                        <td><a href="{{ url('publishr/settings/gates/' ~ gate.id) }}">{{ gate.name }}</a></td>
+                        <td class="light">
+                            {{ type ? type.name : gate.type }}
+                            {% if type and not type.available %}
+                                <span class="error">— {{ type.unavailableReason }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ gate.severity == 'required' ? "Blocks sign-off"|t('publishr') : "Warns only"|t('publishr') }}</td>
+                        <td class="light">
+                            {{ gate.stageHandles ? gate.stageHandles|join(', ') : "every gated stage"|t('publishr') }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

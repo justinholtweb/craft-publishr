@@ -1,0 +1,22 @@
+<div class="pub-comment {{ comment.resolved ? 'pub-comment--resolved' }} {{ depth > 0 ? 'pub-comment--reply' }}">
+    <div class="pub-comment__h">
+        <span>{{ comment.getAuthor() ? comment.getAuthor().friendlyName : "Someone"|t('publishr') }}</span>
+        <span>{{ comment.dateCreated ? comment.dateCreated|datetime('short') : '' }}</span>
+    </div>
+    <div class="pub-comment__b">{{ comment.body }}</div>
+
+    {% if canComment %}
+        <div style="margin-top:4px;">
+            <button type="button" class="btn small"
+                    data-pub-action="publishr/comments/resolve"
+                    data-id="{{ comment.id }}"
+                    data-resolved="{{ comment.resolved ? '0' : '1' }}">
+                {{ comment.resolved ? "Reopen"|t('publishr') : "Resolve"|t('publishr') }}
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+{% for reply in comment.replies %}
+    {% include "publishr/_partials/comment" with { comment: reply, canComment: canComment, depth: depth + 1 } only %}
+{% endfor %}

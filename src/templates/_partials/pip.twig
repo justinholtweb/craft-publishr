@@ -1,0 +1,13 @@
+{# One pip on the calendar. Draggable only where the viewer can actually change the date. #}
+
+<a class="pub-pip pub-c-{{ event.color() }} {{ event.late ? 'pub-pip--late' }} {{ event.isDraft ? 'pub-pip--draft' }}"
+   href="{{ event.entry.getCpEditUrl() }}"
+   draggable="true"
+   data-pub-pip
+   data-element-id="{{ event.entry.getCanonicalId() }}"
+   data-site-id="{{ event.entry.siteId }}"
+   data-lane="{{ event.lane }}"
+   data-date="{{ date }}"
+   title="{{ event.entry.title }}{% if event.stage() %} · {{ event.stage().name }}{% endif %}{% if event.item and event.item.getAssignee() %} · {{ event.item.getAssignee().friendlyName }}{% endif %}">
+    <span class="pub-pip__lane">{{ event.lane|slice(0, 3) }}</span>{{ event.entry.title ?? "Untitled"|t('publishr') }}
+</a>

@@ -1,0 +1,38 @@
+{# One notification. Plain, inline-styled HTML — every clever email framework fails in Outlook. #}
+<div style="font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #23262d;">
+    <p style="margin: 0 0 14px;">{{ "Hello {name},"|t('publishr', { name: user.friendlyName }) }}</p>
+
+    <p style="margin: 0 0 14px;">
+        <strong>{{ label }}</strong> — {{ payload.title ?? "Untitled"|t('publishr') }}
+    </p>
+
+    {% if event == 'stageChanged' and (payload.to ?? false) %}
+        <p style="margin: 0 0 14px;">
+            {{ "Moved from {from} to {to}."|t('publishr', { from: payload.from ?? "nowhere"|t('publishr'), to: payload.to }) }}
+        </p>
+    {% endif %}
+
+    {% if event in ['dueSoon', 'overdue'] and (payload.days ?? null) is not null %}
+        <p style="margin: 0 0 14px;">
+            {% if event == 'overdue' %}
+                {{ "{n} days past its deadline."|t('publishr', { n: payload.days }) }}
+            {% else %}
+                {{ "Due in {n} days."|t('publishr', { n: payload.days }) }}
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if payload.body ?? false %}
+        <blockquote style="margin: 0 0 14px; padding: 8px 12px; border-left: 3px solid #d6d9e0; color: #596170;">
+            {{ payload.body|nl2br }}
+        </blockquote>
+    {% endif %}
+
+    {% if payload.url ?? false %}
+        <p style="margin: 0 0 14px;">
+            <a href="{{ payload.url }}" style="color: #4a4fa8;">{{ "Open it"|t('publishr') }}</a>
+        </p>
+    {% endif %}
+
+    <p style="margin: 20px 0 0; font-size: 12px; color: #8f98a3;">{{ "Sent by Publishr."|t('publishr') }}</p>
+</div>

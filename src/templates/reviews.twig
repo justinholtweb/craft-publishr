@@ -1,0 +1,82 @@
+{% extends "publishr/_layouts/screen" %}
+{% set selectedSubnavItem = 'reviews' %}
+
+{% block screenActions %}
+    {% if canReview %}
+        <form method="post" accept-charset="UTF-8" style="display:inline;">
+            {{ csrfInput() }}
+            {{ actionInput('publishr/reviews/schedule') }}
+            {{ redirectInput('publishr/reviews') }}
+            <button type="submit" class="btn">{{ "Schedule outstanding"|t('publishr') }}</button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="pub-stats">
+        <div class="pub-stat"><span class="pub-stat__n">{{ summary.due }}</span><span class="pub-stat__l">{{ "due now"|t('publishr') }}</span></div>
+        <div class="pub-stat"><span class="pub-stat__n">{{ summary.scheduled }}</span><span class="pub-stat__l">{{ "on a review cycle"|t('publishr') }}</span></div>
+        <div class="pub-stat"><span class="pub-stat__n">{{ summary.neverReviewed }}</span><span class="pub-stat__l">{{ "never reviewed"|t('publishr') }}</span></div>
+        <div class="pub-stat"><span class="pub-stat__n">{{ summary.tracked }}</span><span class="pub-stat__l">{{ "tracked"|t('publishr') }}</span></div>
+    </div>
+
+    {% if policies is empty %}
+        <div class="pub-note">
+            {{ "No freshness policies yet, so nothing has a review date. A policy says how long a kind of content stays good for."|t('publishr') }}
+            <a href="{{ url('publishr/settings/policies/new') }}">{{ "Write one"|t('publishr') }}</a>.
+        </div>
+    {% endif %}
+
+    <form method="get" class="pub-toolbar">
+        {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
+        <div class="select">
+            <select name="within" onchange="this.form.submit()">
+                <option value="0" {{ horizon == 0 ? 'selected' }}>{{ "Overdue only"|t('publishr') }}</option>
+                <option value="30" {{ horizon == 30 ? 'selected' }}>{{ "Next 30 days"|t('publishr') }}</option>
+                <option value="90" {{ horizon == 90 ? 'selected' }}>{{ "Next 90 days"|t('publishr') }}</option>
+            </select>
+        </div>
+    </form>
+
+    {% if rows is empty %}
+        <div class="pub-empty">{{ "Nothing needs looking at. That is either very good news or a sign nothing is on a policy yet."|t('publishr') }}</div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Piece"|t('publishr') }}</th>
+                    <th>{{ "Policy"|t('publishr') }}</th>
+                    <th>{{ "Last reviewed"|t('publishr') }}</th>
+                    <th>{{ "Due"|t('publishr') }}</th>
+                    <th style="width:140px;">{{ "Staleness"|t('publishr') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td><a href="{{ row.entry.getCpEditUrl() }}">{{ row.entry.title ?? "Untitled"|t('publishr') }}</a></td>
+                        <td class="light">{{ row.policy ? row.policy.name : '—' }}</td>
+                        <td class="light">{{ row.item.lastReviewedAt ? row.item.lastReviewedAt|date('j M Y') : "never"|t('publishr') }}</td>
+                        <td class="{{ row.item.isReviewOverdue() ? 'error' }}">{{ row.item.reviewDue ? row.item.reviewDue|date('j M Y') : '—' }}</td>
+                        <td>
+                            <div class="pub-bar"><div class="pub-bar__f" style="width:{{ row.staleness }}%;"></div></div>
+                        </td>
+                        <td class="rightalign">
+                            {% if canReview %}
+                                <form method="post" accept-charset="UTF-8" style="display:inline;">
+                                    {{ csrfInput() }}
+                                    {{ actionInput('publishr/items/reviewed') }}
+                                    {{ redirectInput('publishr/reviews') }}
+                                    <input type="hidden" name="elementId" value="{{ row.item.elementId }}">
+                                    <input type="hidden" name="siteId" value="{{ row.item.siteId }}">
+                                    <button type="submit" class="btn small">{{ "Mark reviewed"|t('publishr') }}</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
