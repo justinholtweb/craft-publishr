@@ -4,7 +4,7 @@
 
 Publishr is the editorial calendar and content governance layer for Craft CMS: a month view of
 everything in flight, editorial stages, assignments, deadlines, publish requirements and freshness
-reviews. Distributed as `justinholtweb/craft-publishr`. **Lite/Pro**, and the split is *Lite plans
+reviews. Distributed as `justinholtweb/craft-publishr`. **Lite $59 / Pro $129**, and the split is *Lite plans
 the work, Pro governs it*. In the spirit of WordPress's PublishPress, but the Craft problem is a
 different problem — see below.
 
@@ -142,6 +142,32 @@ check-then-insert cannot be made safe in PHP, so the insert is the thing that ha
   true. It also returns early on `getIsApplyingExternalChanges()`, or every environment gets
   duplicate stages with different UIDs.
 
+- **Never `setElement(null)` because the entry is a draft.** `setElement()` marks the element
+  *loaded*, so `getElement()` then returns null — and a gated move with a null element used to skip
+  its requirements. A brand-new piece *is* an unpublished draft, so every new piece was signed off
+  unchecked. Leave a draft's element unloaded; it lazy-loads `elementId`. A gated move with no
+  resolvable entry is refused (fail closed) — "I don't know" is never "no" for one *gate*, but a
+  missing entry is not a gate.
+- **Publish/expire pips carry the element's own ID; due/review pips carry the canonical ID.** The
+  former write `postDate`/`expiryDate` on that element. Dragging a draft's pip with the canonical
+  ID moved the *live* entry's post date into the future and took it off the site.
+- **A custom event with an `isValid` contract must extend `craft\events\CancelableEvent`.** On a
+  plain `yii\base\Event`, reading `$event->isValid` throws `UnknownPropertyException` — every
+  stage move would have died the moment anybody attached a listener.
+- **Uninstall must remove `publishr` from project config, with `muteEvents` on.** Craft only clears
+  `plugins.publishr`; the rest resurrects on reinstall as duplicate stages. The `onRemove` handlers
+  delete rows from tables `safeDown()` has already dropped, hence the mute (`Plugin::afterUninstall()`).
+- **Project config stores the policy reviewer as a user UID**, never an ID — IDs differ per
+  environment, and a missing one was an FK failure that aborted the whole apply.
+- **Soft deletes keep the item.** The delete handler acts only on `$entry->hardDelete`; a restored
+  entry gets its stage, owner and deadline back. The FK cascades on the real delete.
+- **Every Publishr read and write also requires Craft's `canView` on the entry**, and an editable
+  site. Publishr permissions govern Publishr data, never more than Craft would show the person.
+  Calendar/board/overview filter per entry; the calendar does it in the controller because the
+  service also feeds front-end Twig.
+- **`sendPending()` holds a mutex** (`publishr:send-notifications`). The dedupe key protects the
+  insert only; cron, the queue and "Try again" draining the same rows double-sent.
+
 See also `[[craft-plugin-gotchas]]`, `[[craft-abacus-gotchas]]` and `[[craft-schedulr-gotchas]]`.
 
 ## Testing
@@ -150,11 +176,22 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 
 ```sh
 cd ~/Sites/plugin-testing
-ddev exec php /var/www/craft-publishr/tests/integration/checks.php   # 61 checks
+ddev exec php /var/www/craft-publishr/tests/integration/checks.php   # 71 checks
 ddev exec bash /var/www/craft-publishr/tests/integration/cp-smoke.sh # 22 CP screens + the Lite boundary
 ddev exec bash -c 'find /var/www/craft-publishr/src -name "*.php" -print0 | xargs -0 -n1 php -l'
 ddev exec php craft publishr/sweep/status
 ```
+
+Static analysis runs in the phpstan-runner (PHP 8.4, `~/Sites` at `/sites`), never in the harness:
+
+```sh
+docker exec -w /sites/craft-publishr ddev-phpstan-runner-web composer phpstan    # level 5, clean
+docker exec -w /sites/craft-publishr ddev-phpstan-runner-web composer check-cs
+```
+
+The `ignoreErrors` in `phpstan.neon` are three known false-positive classes (ActiveRecord row typing,
+`craft\mail\Message::setTo(User)`, and the string-resolved integrations). Anything else is real —
+the first run found the uncancellable `StageChangeEvent`.
 
 `checks.php` is idempotent and self-cleaning: it creates its own stage, entries, requirements,
 policies and comments, deletes them, and puts the edition back where it found it.
@@ -180,7 +217,10 @@ plugin's accent, and the mark in `#FEFEFE`. The accent is **`#4A4FA8`** — an e
 clear of Showtime's plum and Telescope's navy. The tile colour, `accentColor` in the page seed and
 the promo palette are all the same value; keep them that way.
 
-`src/icon-mask.svg` is scaled into 2–98 of the viewBox so nothing is clipped in the CP nav.
+The glyph is one `fill-rule="evenodd"` path — the unmarked days are outlines punched as holes, not
+`opacity` — and `src/icon-mask.svg` is that path copied across unchanged, so the mask is a solid
+silhouette. The binding rings stop at the body's top edge (`y=27`): any overlap is XOR'd out by
+evenodd and shows as a notch.
 
 `docs/*.md` is the **source of truth** for the marketing site's documentation. Each file needs YAML
 front matter with at least a `title`; a file without it is skipped. Changing a doc means re-syncing:

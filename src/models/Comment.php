@@ -65,6 +65,6 @@ class Comment extends Model
     {
         preg_match_all('/(?<![\w@])@([a-zA-Z0-9_.\-]{1,64})/', $this->body, $matches);
 
-        return array_values(array_unique($matches[1] ?? []));
+        return array_values(array_unique($matches[1]));
     }
 }

@@ -1,5 +1,8 @@
 ---
 title: Installation
+slug: installation
+order: 10
+summary: 'Requirements, editions, install, and bringing existing entries onto the calendar.'
 ---
 
 # Installation
@@ -10,6 +13,26 @@ php craft plugin/install publishr
 ```
 
 Publishr needs Craft CMS 5.3 or later and PHP 8.2 or later. It has no runtime dependencies.
+
+## Editions
+
+Both editions are paid. **Lite is $59** and **Pro is $129**.
+
+Lite plans the work: the calendar, the board, stages, assignments, deadlines, comments and history.
+Pro governs it: publish requirements, freshness reviews, notifications and the governance report.
+Neither is capped by volume, and Lite's only limit is five editorial stages.
+
+| | Lite | Pro |
+| --- | --- | --- |
+| Month calendar, all four lanes | ✓ | ✓ |
+| Board and overview | ✓ | ✓ |
+| Editorial stages | up to 5 | unlimited |
+| Assignments, deadlines, comments, history | ✓ | ✓ |
+| Publish requirements | | ✓ |
+| Freshness reviews and policies | | ✓ |
+| Notifications and daily digest | | ✓ |
+| Governance report and CSV export | | ✓ |
+| Section subscriptions | | ✓ |
 
 ## What installing does
 
@@ -60,7 +83,7 @@ Neither is required, and Publishr works completely without both.
 - **[Alarm Clock](https://justinholt.com/plugins/craft-alarmclock)** — pieces move to the published
   stage within a minute of going live, instead of at the next sweep. See
   [Alarm Clock and RedPen](integrations.md).
-- **[RedPen](https://justinholt.com/plugins/craft-redpen)** — adds a "Passes RedPen" publish
+- **[RedPen](https://craft-redpen.com)** — adds a "Passes RedPen" publish
   requirement, so a piece cannot be signed off while it breaks your house style guide.
 
 ## Uninstalling

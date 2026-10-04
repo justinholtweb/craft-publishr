@@ -2,16 +2,24 @@
 {% import "_includes/forms.twig" as forms %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'general' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+{% set fullPageForm = not readOnly %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
+
+{% block sidebar %}
+    {% include "publishr/settings/_nav" with { selectedTab: selectedTab } only %}
+{% endblock %}
 
 {% block content %}
-    {% include "publishr/settings/_nav" %}
+    <p class="notice has-icon"><span class="icon" aria-hidden="true"></span><span>{{ alarmClock }}</span></p>
 
-    <div class="pub-note {{ hasAlarmClock ? '' : 'pub-note--pro' }}">{{ alarmClock }}</div>
-
-    <form method="post" accept-charset="UTF-8">
-        {{ csrfInput() }}
+    {% if not readOnly %}
         {{ actionInput('publishr/settings/save') }}
         {{ redirectInput('publishr/settings/general') }}
+    {% endif %}
 
         <h2>{{ "What Publishr looks after"|t('publishr') }}</h2>
 
@@ -22,6 +30,7 @@
             options: sections|map(s => { label: s.name, value: s.uid }),
             values: settings.sections,
             showAllOption: false,
+            disabled: readOnly,
         }) }}
 
         {{ forms.lightswitchField({
@@ -29,6 +38,7 @@
             instructions: "Off means a piece only appears on the calendar once somebody adds it."|t('publishr'),
             name: 'settings[autoTrack]',
             on: settings.autoTrack,
+            disabled: readOnly,
         }) }}
 
         <hr>
@@ -40,6 +50,7 @@
             options: lanes|map(l => { label: laneLabels[l], value: l }),
             values: settings.defaultLanes,
             showAllOption: false,
+            disabled: readOnly,
         }) }}
 
         {{ forms.selectField({
@@ -51,6 +62,8 @@
                 { label: "Saturday"|t('publishr'), value: 6 },
             ],
             value: settings.weekStartDay,
+            errors: settings.getErrors('weekStartDay'),
+            disabled: readOnly,
         }) }}
 
         {{ forms.textField({
@@ -60,6 +73,8 @@
             type: 'number',
             value: settings.maxPerDay,
             size: 4,
+            errors: settings.getErrors('maxPerDay'),
+            disabled: readOnly,
         }) }}
 
         <hr>
@@ -70,26 +85,28 @@
             instructions: "Alarm Clock notices the moment it happens. Without it, the sweep catches up."|t('publishr'),
             name: 'settings[advanceOnPublish]',
             on: settings.advanceOnPublish,
+            disabled: readOnly,
         }) }}
 
         {{ forms.lightswitchField({
             label: "Clear the deadline once it goes live"|t('publishr'),
             name: 'settings[clearDueOnPublish]',
             on: settings.clearDueOnPublish,
+            disabled: readOnly,
         }) }}
 
         <hr>
         <h2>{{ "Requirements"|t('publishr') }}</h2>
 
         {% if not isPro %}
-            <div class="pub-note pub-note--pro">{{ "Publish requirements are a Pro feature."|t('publishr') }}</div>
+            <p class="notice has-icon"><span class="icon" aria-hidden="true"></span><span>{{ "Publish requirements are a Pro feature."|t('publishr') }}</span></p>
         {% endif %}
 
         {{ forms.lightswitchField({
             label: "Re-check requirements whenever an entry is saved"|t('publishr'),
             name: 'settings[checkGatesOnSave]',
             on: settings.checkGatesOnSave,
-            disabled: not isPro,
+            disabled: readOnly or not isPro,
         }) }}
 
         {{ forms.lightswitchField({
@@ -97,7 +114,7 @@
             instructions: "Off by default. Blocking a stage move is a conversation; blocking a save is a wall. Even on, it only bites when an entry would become public, and never for somebody who can override."|t('publishr'),
             name: 'settings[blockPublish]',
             on: settings.blockPublish,
-            disabled: not isPro,
+            disabled: readOnly or not isPro,
             warning: settings.blockPublish ? "This is on. Entries failing a required check cannot be published."|t('publishr') : null,
         }) }}
 
@@ -108,7 +125,7 @@
             label: "Keep review-by dates"|t('publishr'),
             name: 'settings[freshnessEnabled]',
             on: settings.freshnessEnabled,
-            disabled: not isPro,
+            disabled: readOnly or not isPro,
         }) }}
 
         {{ forms.textField({
@@ -118,7 +135,8 @@
             type: 'number',
             value: settings.maxReviewsPerSweep,
             size: 6,
-            disabled: not isPro,
+            errors: settings.getErrors('maxReviewsPerSweep'),
+            disabled: readOnly or not isPro,
         }) }}
 
         {{ forms.textField({
@@ -128,22 +146,30 @@
             type: 'number',
             value: settings.historyRetentionDays,
             size: 6,
+            errors: settings.getErrors('historyRetentionDays'),
+            disabled: readOnly,
         }) }}
-
-        <div class="buttons">
-            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
-        </div>
-    </form>
 
     <hr>
 
-    <form method="post" accept-charset="UTF-8">
-        {{ csrfInput() }}
-        {{ actionInput('publishr/settings/sweep') }}
-        {{ redirectInput('publishr/settings/general') }}
-        <button type="submit" class="btn">{{ "Run the sweep now"|t('publishr') }}</button>
-        <p class="light" style="font-size:12px;">
-            {{ "Advances published pieces, schedules reviews, raises reminders and sends what is waiting. Put `php craft publishr/sweep` on cron for the real thing."|t('publishr') }}
-        </p>
-    </form>
+    {#
+        Not a form of its own: on a fullPageForm screen it would be nested inside Craft's, and the
+        parser would drop the tag. A formsubmit button posts the main form to a different action.
+        Where the screen is read-only there is no main form, so it gets a small one of its own.
+    #}
+    {% if readOnly %}
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('publishr/settings/sweep') }}
+            {{ redirectInput('publishr/settings/general') }}
+            <button type="submit" class="btn">{{ "Run the sweep now"|t('publishr') }}</button>
+        </form>
+    {% else %}
+        <button type="button" class="btn formsubmit"
+                data-action="publishr/settings/sweep"
+                data-redirect="{{ 'publishr/settings/general'|hash }}">{{ "Run the sweep now"|t('publishr') }}</button>
+    {% endif %}
+    <div class="smalltext light">
+        {{ "Advances published pieces, schedules reviews, raises reminders and sends what is waiting. Put `php craft publishr/sweep` on cron for the real thing."|t('publishr')|md(inlineOnly=true) }}
+    </div>
 {% endblock %}

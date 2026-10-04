@@ -2,11 +2,13 @@
 {% set selectedSubnavItem = 'overview' %}
 
 {% block content %}
+    {% set statusLabels = { live: "Live"|t('publishr'), pending: "Pending"|t('publishr'), expired: "Expired"|t('publishr'), disabled: "Disabled"|t('publishr'), draft: "Draft"|t('publishr') } %}
+
     <form method="get" class="pub-toolbar">
         {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
 
         <div class="select">
-            <select name="stageId" onchange="this.form.submit()">
+            <select name="stageId" data-pub-autosubmit aria-label="{{ 'Stage'|t('publishr') }}">
                 <option value="">{{ "Any stage"|t('publishr') }}</option>
                 {% for stage in stages %}
                     <option value="{{ stage.id }}" {{ stageId == stage.id ? 'selected' }}>{{ stage.name }}</option>
@@ -15,7 +17,7 @@
         </div>
 
         <div class="select">
-            <select name="assigneeId" onchange="this.form.submit()">
+            <select name="assigneeId" data-pub-autosubmit aria-label="{{ 'Owner'|t('publishr') }}">
                 <option value="">{{ "Anybody"|t('publishr') }}</option>
                 <option value="me" {{ assigneeId == currentUser.id ? 'selected' }}>{{ "Me"|t('publishr') }}</option>
                 <option value="nobody" {{ assigneeId == 'nobody' ? 'selected' }}>{{ "Nobody"|t('publishr') }}</option>
@@ -26,7 +28,7 @@
         </div>
 
         <div class="select">
-            <select name="state" onchange="this.form.submit()">
+            <select name="state" data-pub-autosubmit aria-label="{{ 'Show'|t('publishr') }}">
                 <option value="">{{ "Everything"|t('publishr') }}</option>
                 <option value="overdue" {{ state == 'overdue' ? 'selected' }}>{{ "Overdue"|t('publishr') }}</option>
                 {% if isPro %}
@@ -34,12 +36,13 @@
                 {% endif %}
             </select>
         </div>
+        <noscript><button type="submit" class="btn">{{ "Filter"|t('publishr') }}</button></noscript>
     </form>
 
     {% if rows is empty %}
-        <div class="pub-empty">
-            {{ "Nothing matches. If the calendar is empty everywhere, run `php craft publishr/track` to bring the content you already have onto it."|t('publishr') }}
-        </div>
+        <p class="zilch small">
+            {{ "Nothing matches. If the calendar is empty everywhere, run {command} to bring the content you already have onto it."|t('publishr', { command: '<code>php craft publishr/track</code>' })|raw }}
+        </p>
     {% else %}
         <form method="post" accept-charset="UTF-8" data-pub-bulk>
             {{ csrfInput() }}
@@ -50,7 +53,7 @@
             <table class="data fullwidth">
                 <thead>
                     <tr>
-                        {% if canManage %}<th style="width:24px;"><input type="checkbox" data-pub-select-all></th>{% endif %}
+                        {% if canManage %}<th class="pub-col-check"><input type="checkbox" data-pub-select-all aria-label="{{ 'Select all'|t('publishr') }}"></th>{% endif %}
                         <th>{{ "Piece"|t('publishr') }}</th>
                         <th>{{ "Stage"|t('publishr') }}</th>
                         <th>{{ "Owner"|t('publishr') }}</th>
@@ -63,14 +66,14 @@
                     {% for row in rows %}
                         <tr>
                             {% if canManage %}
-                                <td><input type="checkbox" name="elementIds[]" value="{{ row.entry.getCanonicalId() }}" data-pub-select></td>
+                                <td><input type="checkbox" name="elementIds[]" value="{{ row.entry.getCanonicalId() }}" data-pub-select aria-label="{{ 'Select {title}'|t('publishr', { title: row.entry.title ?? 'Untitled'|t('publishr') }) }}"></td>
                             {% endif %}
                             <td>
                                 <a href="{{ row.entry.getCpEditUrl() }}">{{ row.entry.title ?? "Untitled"|t('publishr') }}</a>
                                 {% if row.openComments %}
                                     <span class="light">· {{ "{n} open"|t('publishr', { n: row.openComments }) }}</span>
                                 {% endif %}
-                                <div class="light" style="font-size:11px;">{{ row.entry.getSection() ? row.entry.getSection().name : '—' }}</div>
+                                <div class="light pub-sub">{{ row.entry.getSection() ? row.entry.getSection().name : '—' }}</div>
                             </td>
                             <td>
                                 {% if row.item and row.item.getStage() %}
@@ -83,7 +86,7 @@
                             <td class="{{ row.item and row.item.isOverdue() ? 'error' }}">
                                 {{ row.item and row.item.dueDate ? row.item.dueDate|date('j M Y') : '—' }}
                             </td>
-                            <td><span class="status {{ row.entry.getStatus() }}"></span>{{ row.entry.getStatus()|title }}</td>
+                            <td><span class="status {{ row.entry.getStatus() }}" aria-hidden="true"></span>{{ statusLabels[row.entry.getStatus()] ?? row.entry.getStatus()|t('app') }}</td>
                             {% if isPro %}
                                 <td>{{ row.item and row.item.reviewDue ? row.item.reviewDue|date('j M Y') : '—' }}</td>
                             {% endif %}
@@ -93,26 +96,26 @@
             </table>
 
             {% if canManage %}
-                <div class="pub-toolbar" style="margin-top:16px;">
+                <div class="pub-toolbar pub-toolbar--foot">
                     <div class="select">
-                        <select name="bulkAction">
+                        <select name="bulkAction" aria-label="{{ 'Bulk action'|t('publishr') }}">
                             <option value="stage">{{ "Move to stage"|t('publishr') }}</option>
                             <option value="assign">{{ "Assign to"|t('publishr') }}</option>
                             <option value="due">{{ "Set deadline"|t('publishr') }}</option>
                         </select>
                     </div>
                     <div class="select">
-                        <select name="stageId">
+                        <select name="stageId" aria-label="{{ 'Stage'|t('publishr') }}">
                             {% for stage in stages %}<option value="{{ stage.id }}">{{ stage.name }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="select">
-                        <select name="assigneeId">
+                        <select name="assigneeId" aria-label="{{ 'Owner'|t('publishr') }}">
                             <option value="">{{ "Nobody"|t('publishr') }}</option>
                             {% for person in people %}<option value="{{ person.value }}">{{ person.label }}</option>{% endfor %}
                         </select>
                     </div>
-                    <input class="text" type="date" name="dueDate">
+                    <input class="text" type="date" name="dueDate" aria-label="{{ 'Deadline'|t('publishr') }}">
                     <button type="submit" class="btn submit">{{ "Apply"|t('publishr') }}</button>
                 </div>
             {% endif %}

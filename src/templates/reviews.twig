@@ -3,7 +3,7 @@
 
 {% block screenActions %}
     {% if canReview %}
-        <form method="post" accept-charset="UTF-8" style="display:inline;">
+        <form method="post" accept-charset="UTF-8" class="pub-inline">
             {{ csrfInput() }}
             {{ actionInput('publishr/reviews/schedule') }}
             {{ redirectInput('publishr/reviews') }}
@@ -21,25 +21,29 @@
     </div>
 
     {% if policies is empty %}
-        <div class="pub-note">
-            {{ "No freshness policies yet, so nothing has a review date. A policy says how long a kind of content stays good for."|t('publishr') }}
-            <a href="{{ url('publishr/settings/policies/new') }}">{{ "Write one"|t('publishr') }}</a>.
-        </div>
+        <p class="notice has-icon">
+            <span class="icon" aria-hidden="true"></span>
+            <span>
+                {{ "No freshness policies yet, so nothing has a review date. A policy says how long a kind of content stays good for."|t('publishr') }}
+                <a href="{{ url('publishr/settings/policies/new') }}">{{ "Write one"|t('publishr') }}</a>.
+            </span>
+        </p>
     {% endif %}
 
     <form method="get" class="pub-toolbar">
         {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
         <div class="select">
-            <select name="within" onchange="this.form.submit()">
+            <select name="within" data-pub-autosubmit aria-label="{{ 'Show'|t('publishr') }}">
                 <option value="0" {{ horizon == 0 ? 'selected' }}>{{ "Overdue only"|t('publishr') }}</option>
                 <option value="30" {{ horizon == 30 ? 'selected' }}>{{ "Next 30 days"|t('publishr') }}</option>
                 <option value="90" {{ horizon == 90 ? 'selected' }}>{{ "Next 90 days"|t('publishr') }}</option>
             </select>
         </div>
+        <noscript><button type="submit" class="btn">{{ "Filter"|t('publishr') }}</button></noscript>
     </form>
 
     {% if rows is empty %}
-        <div class="pub-empty">{{ "Nothing needs looking at. That is either very good news or a sign nothing is on a policy yet."|t('publishr') }}</div>
+        <p class="zilch small">{{ "Nothing needs looking at. That is either very good news or a sign nothing is on a policy yet."|t('publishr') }}</p>
     {% else %}
         <table class="data fullwidth">
             <thead>
@@ -48,8 +52,8 @@
                     <th>{{ "Policy"|t('publishr') }}</th>
                     <th>{{ "Last reviewed"|t('publishr') }}</th>
                     <th>{{ "Due"|t('publishr') }}</th>
-                    <th style="width:140px;">{{ "Staleness"|t('publishr') }}</th>
-                    <th></th>
+                    <th class="pub-col-bar">{{ "Staleness"|t('publishr') }}</th>
+                    <th><span class="visually-hidden">{{ "Actions"|t('publishr') }}</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -60,11 +64,11 @@
                         <td class="light">{{ row.item.lastReviewedAt ? row.item.lastReviewedAt|date('j M Y') : "never"|t('publishr') }}</td>
                         <td class="{{ row.item.isReviewOverdue() ? 'error' }}">{{ row.item.reviewDue ? row.item.reviewDue|date('j M Y') : '—' }}</td>
                         <td>
-                            <div class="pub-bar"><div class="pub-bar__f" style="width:{{ row.staleness }}%;"></div></div>
+                            <div class="pub-bar" role="img" aria-label="{{ 'Staleness: {n} of 100'|t('publishr', { n: row.staleness }) }}"><div class="pub-bar__f" style="width:{{ row.staleness }}%;"></div></div>
                         </td>
                         <td class="rightalign">
                             {% if canReview %}
-                                <form method="post" accept-charset="UTF-8" style="display:inline;">
+                                <form method="post" accept-charset="UTF-8" class="pub-inline">
                                     {{ csrfInput() }}
                                     {{ actionInput('publishr/items/reviewed') }}
                                     {{ redirectInput('publishr/reviews') }}

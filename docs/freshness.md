@@ -1,5 +1,8 @@
 ---
 title: Freshness reviews
+slug: freshness
+order: 50
+summary: 'Pro: review policies that flag content nobody has checked in too long.'
 ---
 
 # Freshness reviews

@@ -8,6 +8,7 @@ use Craft;
 use craft\base\Component;
 use craft\db\Query;
 use craft\elements\Entry;
+use craft\elements\User;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Db;
 use craft\helpers\Json;
@@ -53,7 +54,13 @@ class Items extends Component
         $item = $this->forElement($elementId, $siteId);
 
         if ($item !== null) {
-            $item->setElement($entry->getIsDraft() ? null : $entry);
+            // A draft is not cached as the item's element: the item describes the canonical piece.
+            // Left unloaded, getElement() resolves elementId — the canonical entry, or for a piece
+            // that has never been published, the unpublished draft itself. Nulling it here would
+            // make every gated move on a new piece skip its requirements.
+            if (!$entry->getIsDraft()) {
+                $item->setElement($entry);
+            }
 
             return $item;
         }
@@ -187,9 +194,24 @@ class Items extends Component
         }
 
         $target = $plugin->stages->getStageById($stageId);
+
+        if ($stageId !== null && $target === null) {
+            $problems[] = Craft::t('publishr', 'That stage no longer exists.');
+
+            return false;
+        }
+
         $entry = $item->getElement();
 
         $overridden = [];
+
+        // A gated stage with nothing to evaluate is refused, not waved through. "I don't know" is
+        // never "no" for a single gate; an entry that cannot be found at all is not a gate.
+        if ($target !== null && $target->gated && $entry === null && !$force) {
+            $problems[] = Craft::t('publishr', 'The entry could not be found, so its requirements could not be checked.');
+
+            return false;
+        }
 
         if ($target !== null && $target->gated && $entry !== null) {
             $report = $plugin->gates->evaluate($entry, $target);
@@ -261,6 +283,11 @@ class Items extends Component
             return true;
         }
 
+        // A user ID that does not exist is a foreign-key failure waiting in save(), and a 500.
+        if ($assigneeId !== null && !User::find()->id($assigneeId)->status(null)->exists()) {
+            return false;
+        }
+
         $was = $item->getAssignee()?->friendlyName;
         $item->assigneeId = $assigneeId;
 
@@ -322,7 +349,16 @@ class Items extends Component
 
     public function storeGateReport(Item $item, GateReport $report): void
     {
-        $item->gateState = $report->toArray();
+        // Ticks are a person's word about this version of the text, and the report was computed
+        // from them. A refused move or a re-check must not wipe them while they are still true.
+        $ticks = $item->gateState['ticks'] ?? null;
+        $state = $report->toArray();
+
+        if ($ticks && $item->gateStateIsFresh()) {
+            $state['ticks'] = $ticks;
+        }
+
+        $item->gateState = $state;
         $item->gatesCheckedAt = $report->checkedAt ?? DateTimeHelper::now();
 
         $this->save($item);
@@ -438,6 +474,29 @@ class Items extends Component
 
         // A piece that is already out is not late, whatever its deadline says.
         return $this->withoutPublished($items);
+    }
+
+    /**
+     * How many of one person's pieces are late. A COUNT, because the navigation asks on every
+     * control-panel request and loading the rows to count them would be hundreds per page view.
+     */
+    public function overdueCountFor(int $userId): int
+    {
+        $query = (new Query())
+            ->from([Table::ITEMS])
+            ->where(['assigneeId' => $userId])
+            // Late means the due *day* has passed, the same whole-day rule isOverdue() uses, so
+            // the badge and the screens agree about a piece due at five this afternoon.
+            ->andWhere(['<', 'dueDate', Db::prepareDateForDb(DateTimeHelper::now()->setTime(0, 0))]);
+
+        // A piece that is already out is not late, whatever its deadline says.
+        $published = Plugin::getInstance()->stages->getPublishedStage();
+
+        if ($published !== null) {
+            $query->andWhere(['or', ['stageId' => null], ['not', ['stageId' => $published->id]]]);
+        }
+
+        return (int)$query->count();
     }
 
     /** @return Item[] Work with no owner. */

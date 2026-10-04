@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace justinholtweb\publishr\models;
 
+use Craft;
 use craft\base\Model;
 use craft\validators\HandleValidator;
 use craft\validators\UniqueValidator;
@@ -86,7 +87,11 @@ class Policy extends Model
             'intervalDays' => $this->intervalDays,
             'remindDaysBefore' => $this->remindDaysBefore,
             'assignTo' => $this->assignTo,
-            'assigneeId' => $this->assigneeId,
+            // A UID, not an ID: user IDs differ between environments, and an ID in project config
+            // would hand staging's reviews to whoever happens to be user 7 there.
+            'assigneeUid' => $this->assigneeId !== null
+                ? Craft::$app->getUsers()->getUserById($this->assigneeId)?->uid
+                : null,
             'enabled' => $this->enabled,
             'sortOrder' => $this->sortOrder,
         ];

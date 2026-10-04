@@ -6,6 +6,7 @@ namespace justinholtweb\publishr\web\assets\cp;
 
 use craft\web\AssetBundle;
 use craft\web\assets\cp\CpAsset as CraftCpAsset;
+use craft\web\View;
 
 class CpAsset extends AssetBundle
 {
@@ -17,5 +18,25 @@ class CpAsset extends AssetBundle
         $this->css = ['publishr.css'];
 
         parent::init();
+    }
+
+    public function registerAssetFiles($view): void
+    {
+        parent::registerAssetFiles($view);
+
+        // Every string publishr.js passes to `Craft.t()`. Unregistered, they come out in English
+        // whatever the editor's language is.
+        if ($view instanceof View) {
+            $view->registerTranslations('publishr', [
+                'Couldn’t move that.',
+                'Couldn’t assign that.',
+                'Couldn’t save that.',
+                'That didn’t work.',
+                'Nothing selected.',
+                'Move to',
+                'Move',
+                'Saved. Reload the page to see the panel’s new state.',
+            ]);
+        }
     }
 }

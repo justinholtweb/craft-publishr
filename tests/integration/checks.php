@@ -76,7 +76,11 @@ function section(string $title): void
 
 $plugin = Plugin::getInstance();
 $originalEdition = $plugin->edition;
-Craft::$app->getPlugins()->switchEdition('publishr', Plugin::EDITION_PRO);
+
+// Editions are switched in memory, never through the plugins service: that writes project config,
+// and on the shared harness the config lock is contended — runs died on BusyResourceException.
+// Nothing here needs the edition to outlive the process.
+$plugin->edition = Plugin::EDITION_PRO;
 
 $settings = $plugin->getSettings();
 $settings->notificationsEnabled = false;
@@ -438,9 +442,9 @@ check('the cached verdict is disbelieved once the entry is saved again', functio
 });
 
 check('Lite returns an empty report rather than pretending everything passed', function() use ($plugin, &$entry, $originalEdition) {
-    Craft::$app->getPlugins()->switchEdition('publishr', Plugin::EDITION_LITE);
+    $plugin->edition = Plugin::EDITION_LITE;
     $report = $plugin->gates->evaluate($entry);
-    Craft::$app->getPlugins()->switchEdition('publishr', Plugin::EDITION_PRO);
+    $plugin->edition = Plugin::EDITION_PRO;
 
     return ($report->results === [] && $report->isClear()) ?: 'Lite ran the checklist';
 });
@@ -892,14 +896,152 @@ check('notifications are off in Lite even with the switch on', function() use ($
     $wasEnabled = $settings->notificationsEnabled;
     $settings->notificationsEnabled = true;
 
-    Craft::$app->getPlugins()->switchEdition('publishr', Plugin::EDITION_LITE);
+    $plugin->edition = Plugin::EDITION_LITE;
     $item = $plugin->items->forEntry($entry);
     $raised = $plugin->notifications->raise('assigned', $item, [1]);
-    Craft::$app->getPlugins()->switchEdition('publishr', Plugin::EDITION_PRO);
+    $plugin->edition = Plugin::EDITION_PRO;
 
     $settings->notificationsEnabled = $wasEnabled;
 
     return $raised === 0 ?: "Lite raised $raised notifications";
+});
+
+// --------------------------------------------------------------- release fixes
+// One check per bug the pre-release review found, so none of them can quietly come back.
+
+section('Release fixes');
+
+check('a new piece that is still an unpublished draft cannot skip a gated stage', function() use ($plugin, $section, $entryType, $siteId, $adminId, $suffix, &$created) {
+    $new = new Entry();
+    $new->sectionId = (int)$section->id;
+    $new->typeId = (int)$entryType->id;
+    $new->siteId = $siteId;
+    $new->title = "Publishr unpublished $suffix";
+
+    if (!Craft::$app->getDrafts()->saveElementAsDraft($new, $adminId)) {
+        return 'could not save an unpublished draft: ' . json_encode($new->getErrors());
+    }
+
+    $created['entries'][] = (int)$new->id;
+
+    $item = $plugin->items->forEntry($new, true);
+    $ready = $plugin->stages->getStageByHandle('ready');
+    $problems = [];
+
+    // The "needs an owner" requirement from earlier is still in force, and nobody owns this.
+    $moved = $plugin->items->moveToStage($item, (int)$ready->id, 1, null, false, $problems);
+
+    return (!$moved && $problems !== []) ?: 'a draft was signed off without its requirements being checked';
+});
+
+check('a re-check keeps the boxes somebody ticked', function() use ($plugin, &$entry, $suffix) {
+    $plugin->gates->report($entry, true);
+    $item = $plugin->items->forEntry($entry);
+    $ticks = $item->gateState['ticks']["signoff$suffix"] ?? [];
+
+    return count($ticks) === 2 ?: 'the ticks were wiped by a re-check: ' . json_encode($item->gateState['ticks'] ?? null);
+});
+
+check('a stage that does not exist is refused, not a foreign-key 500', function() use ($plugin, &$entry) {
+    $item = $plugin->items->forEntry($entry);
+    $problems = [];
+
+    return (!$plugin->items->moveToStage($item, 999999999, 1, null, false, $problems) && $problems !== [])
+        ?: 'a move to a missing stage was not refused cleanly';
+});
+
+check('a before-stage-change listener can cancel a move', function() use ($plugin, &$entry) {
+    $item = $plugin->items->forEntry($entry);
+    $target = $plugin->stages->getStageByHandle('needsEdit');
+    $handler = fn(justinholtweb\publishr\events\StageChangeEvent $e) => $e->isValid = false;
+
+    yii\base\Event::on(justinholtweb\publishr\services\Items::class, justinholtweb\publishr\services\Items::EVENT_BEFORE_STAGE_CHANGE, $handler);
+    $problems = [];
+
+    try {
+        $moved = $plugin->items->moveToStage($item, (int)$target->id, 1, null, false, $problems);
+    } finally {
+        yii\base\Event::off(justinholtweb\publishr\services\Items::class, justinholtweb\publishr\services\Items::EVENT_BEFORE_STAGE_CHANGE, $handler);
+    }
+
+    return !$moved ?: 'the listener could not stop the move';
+});
+
+check('an overdue review is written to the history once, not once per sweep', function() use ($plugin, $makeEntry, $suffix) {
+    $stale = $makeEntry("Publishr stale $suffix", new DateTime('-400 days'));
+    $item = $plugin->items->forEntry($stale, true);
+    $item->reviewDue = new DateTime('-2 days');
+    $plugin->items->save($item);
+
+    $plugin->freshness->logDue($item);
+    $plugin->freshness->logDue($item);
+
+    $rows = array_filter(
+        $plugin->items->history($item->elementId, $item->siteId, 20),
+        fn(HistoryEntry $h) => $h->event === HistoryEntry::EVENT_REVIEW_DUE,
+    );
+
+    return count($rows) === 1 ?: count($rows) . ' review-due rows for one due date';
+});
+
+check('a mention reaches somebody who never subscribed', function() use ($plugin, &$entry, $adminId) {
+    $other = craft\elements\User::find()->id(['not', $adminId])->status(null)->one();
+
+    if ($other === null) {
+        return true; // Nobody else on the test site to mention.
+    }
+
+    $settings = $plugin->getSettings();
+    $was = $settings->notificationsEnabled;
+    $settings->notificationsEnabled = true;
+
+    $item = $plugin->items->forEntry($entry);
+    $raised = $plugin->notifications->raise('mention', $item, [(int)$other->id]);
+
+    $settings->notificationsEnabled = $was;
+
+    Craft::$app->getDb()->createCommand()->delete(justinholtweb\publishr\records\Table::NOTIFICATIONS, [
+        'elementId' => $item->elementId,
+        'userId' => (int)$other->id,
+    ])->execute();
+
+    return $raised === 1 ?: "the mention raised $raised notifications";
+});
+
+check('a policy names its reviewer by UID in project config, never by ID', function() use ($adminId) {
+    $policy = new Policy(['name' => 'X', 'handle' => 'x', 'assignTo' => 'user', 'assigneeId' => $adminId]);
+    $config = $policy->getConfig();
+    $admin = Craft::$app->getUsers()->getUserById($adminId);
+
+    return (!array_key_exists('assigneeId', $config) && ($config['assigneeUid'] ?? null) === $admin->uid)
+        ?: 'project config carries ' . json_encode($config);
+});
+
+check('an entry restored from the trash still has its editorial record', function() use ($plugin, $makeEntry, $suffix) {
+    $trashed = $makeEntry("Publishr trashed $suffix");
+    $plugin->items->forEntry($trashed, true);
+
+    Craft::$app->getElements()->deleteElement($trashed);
+    Craft::$app->getElements()->restoreElement($trashed);
+
+    return $plugin->items->forElement((int)$trashed->id, (int)$trashed->siteId) !== null
+        ?: 'the soft delete took the stage, owner and deadline with it';
+});
+
+check('Lite cannot read the governance report through Twig', function() use ($plugin) {
+    $plugin->edition = Plugin::EDITION_LITE;
+    $report = (new justinholtweb\publishr\twig\PublishrVariable())->report();
+    $plugin->edition = Plugin::EDITION_PRO;
+
+    return $report === [] ?: 'Lite got the report';
+});
+
+check('a CSV cell that looks like a formula is exported as text', function() {
+    $controller = new justinholtweb\publishr\controllers\ReportsController('reports', Plugin::getInstance());
+    $cell = new ReflectionMethod($controller, 'cell');
+
+    return ($cell->invoke($controller, '=HYPERLINK("x")') === "'=HYPERLINK(\"x\")" && $cell->invoke($controller, 'Plain') === 'Plain')
+        ?: 'formula cells were written raw';
 });
 
 // -------------------------------------------------------------------- tidy up
@@ -968,7 +1110,7 @@ check('the site’s own five stages are untouched', function() use ($plugin) {
     return true;
 });
 
-Craft::$app->getPlugins()->switchEdition('publishr', $originalEdition);
+$plugin->edition = $originalEdition;
 
 echo "\n$passed passed, $failed failed\n";
 exit($failed === 0 ? 0 : 1);

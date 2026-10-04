@@ -1,5 +1,8 @@
 ---
 title: Troubleshooting
+slug: troubleshooting
+order: 120
+summary: 'An empty calendar, notifications that never arrive, failing requirements, and other first checks.'
 ---
 
 # Troubleshooting
@@ -94,11 +97,3 @@ moves a 9am deadline across midnight.
 
 Only **published** content gets a review date. A draft that has never gone out has no shelf life to
 have run out.
-
-## After editing anything under `src/web/assets`
-
-```sh
-php craft clear-caches/cp-resources
-```
-
-Craft keeps serving its published copy otherwise.

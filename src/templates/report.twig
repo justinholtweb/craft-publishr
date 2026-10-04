@@ -2,7 +2,7 @@
 {% set selectedSubnavItem = 'report' %}
 
 {% block screenActions %}
-    <form method="post" accept-charset="UTF-8" style="display:inline;">
+    <form method="post" accept-charset="UTF-8" class="pub-inline">
         {{ csrfInput() }}
         {{ actionInput('publishr/reports/export') }}
         {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
@@ -33,9 +33,10 @@
     </div>
 
     {% if coverage.percent < 30 and coverage.entries > 20 %}
-        <div class="pub-note">
-            {{ "Only a small slice of the site is on the calendar, so every number here is about that slice. `php craft publishr/track` brings the rest on."|t('publishr') }}
-        </div>
+        <p class="notice has-icon">
+            <span class="icon" aria-hidden="true"></span>
+            <span>{{ "Only a small slice of the site is on the calendar, so every number here is about that slice. {command} brings the rest on."|t('publishr', { command: '<code>php craft publishr/track</code>' })|raw }}</span>
+        </p>
     {% endif %}
 
     <h2>{{ "Where work is sitting"|t('publishr') }}</h2>
@@ -52,7 +53,7 @@
             {% for row in report.stages %}
                 {% set bottleneck = report.bottlenecks|filter(b => b.stage == row.stage.name)|first %}
                 <tr>
-                    <td><span class="status {{ row.stage.color }}"></span>{{ row.stage.name }}</td>
+                    <td><span class="status {{ row.stage.color }}" aria-hidden="true"></span>{{ row.stage.name }}</td>
                     <td>{{ row.count }}</td>
                     <td class="{{ row.overdue ? 'error' }}">{{ row.overdue }}</td>
                     <td class="light">
@@ -88,14 +89,21 @@
     {% if report.throughput|length %}
         <h2>{{ "Pieces finished, by week"|t('publishr') }}</h2>
         {% set peak = max(report.throughput) %}
-        <div class="pub-spark">
+        <div class="pub-spark" aria-hidden="true">
             {% for week, count in report.throughput %}
                 <div class="pub-spark__b"
                      style="height: {{ peak > 0 ? (count / peak * 100)|round : 0 }}%;"
                      title="{{ week }}: {{ count }}"></div>
             {% endfor %}
         </div>
-        <p class="light" style="font-size:11px;">
+        <table class="visually-hidden">
+            <caption>{{ "Pieces finished, by week"|t('publishr') }}</caption>
+            <thead><tr><th scope="col">{{ "Week"|t('publishr') }}</th><th scope="col">{{ "Pieces"|t('publishr') }}</th></tr></thead>
+            <tbody>
+                {% for week, count in report.throughput %}<tr><td>{{ week }}</td><td>{{ count }}</td></tr>{% endfor %}
+            </tbody>
+        </table>
+        <p class="light pub-footnote">
             {{ "Counted from when a piece reached the published stage, not from its post date — post dates get backdated."|t('publishr') }}
         </p>
     {% endif %}

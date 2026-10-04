@@ -2,6 +2,8 @@
 {% set selectedSubnavItem = 'mine' %}
 
 {% block content %}
+    {% set statusLabels = { live: "Live"|t('publishr'), pending: "Pending"|t('publishr'), expired: "Expired"|t('publishr'), disabled: "Disabled"|t('publishr'), draft: "Draft"|t('publishr') } %}
+
     <div class="pub-stats">
         <div class="pub-stat">
             <span class="pub-stat__n">{{ digest.overdue|length }}</span>
@@ -24,7 +26,7 @@
     </div>
 
     {% if rows is empty %}
-        <div class="pub-empty">{{ "Nothing is assigned to you. Enjoy it."|t('publishr') }}</div>
+        <p class="zilch small">{{ "Nothing is assigned to you. Enjoy it."|t('publishr') }}</p>
     {% else %}
         <table class="data fullwidth">
             <thead>
@@ -44,7 +46,7 @@
                         </td>
                         <td>
                             {% if row.item and row.item.getStage() %}
-                                <span class="status {{ row.item.getStage().color }}"></span>{{ row.item.getStage().name }}
+                                <span class="status {{ row.item.getStage().color }}" aria-hidden="true"></span>{{ row.item.getStage().name }}
                             {% else %}—{% endif %}
                         </td>
                         <td class="{{ row.item and row.item.isOverdue() ? 'error' }}">
@@ -58,7 +60,7 @@
                                 </span>
                             {% else %}—{% endif %}
                         </td>
-                        <td><span class="status {{ row.entry.getStatus() }}"></span>{{ row.entry.getStatus()|title }}</td>
+                        <td><span class="status {{ row.entry.getStatus() }}" aria-hidden="true"></span>{{ statusLabels[row.entry.getStatus()] ?? row.entry.getStatus()|t('app') }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace justinholtweb\publishr\events;
 
+use craft\events\CancelableEvent;
 use justinholtweb\publishr\models\Item;
 use justinholtweb\publishr\models\Stage;
-use yii\base\Event;
 
 /**
  * Fired around a stage move.
@@ -15,7 +15,7 @@ use yii\base\Event;
  * for a rule Publishr's own gates cannot express, like "nothing may reach Ready during a code
  * freeze".
  */
-class StageChangeEvent extends Event
+class StageChangeEvent extends CancelableEvent
 {
     public Item $item;
     public ?Stage $fromStage = null;

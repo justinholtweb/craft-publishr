@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace justinholtweb\publishr\controllers;
 
 use Craft;
+use craft\elements\Entry;
 use justinholtweb\publishr\models\Comment;
 use justinholtweb\publishr\Plugin;
+use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
 use yii\web\Response;
 
@@ -19,7 +21,7 @@ class CommentsController extends BaseController
 
         $comment = new Comment([
             'elementId' => (int)$this->request->getRequiredBodyParam('elementId'),
-            'siteId' => (int)($this->request->getBodyParam('siteId') ?: $this->siteId()),
+            'siteId' => $this->bodySiteId(),
             'authorId' => $this->currentUserId(),
             'parentId' => ($p = $this->request->getBodyParam('parentId')) ? (int)$p : null,
             'body' => trim((string)$this->request->getRequiredBodyParam('body')),
@@ -27,6 +29,18 @@ class CommentsController extends BaseController
 
         if ($comment->body === '') {
             return $this->asFailure(Craft::t('publishr', 'Say something.'));
+        }
+
+        // Comments are about entries, and only ones this person can see. Without this, an element
+        // ID for a user or an asset would quietly start tracking it.
+        $this->requireCanView($this->entry($comment->elementId, $comment->siteId));
+
+        if ($comment->parentId !== null) {
+            $parent = $this->plugin()->comments->getById($comment->parentId);
+
+            if ($parent === null || $parent->elementId !== $comment->elementId || $parent->siteId !== $comment->siteId) {
+                throw new BadRequestHttpException('That reply is to a comment on a different entry.');
+            }
         }
 
         // The item is created on first comment. Somebody starting a conversation about a piece is
@@ -48,6 +62,21 @@ class CommentsController extends BaseController
 
         $id = (int)$this->request->getRequiredBodyParam('id');
         $resolved = (bool)$this->request->getBodyParam('resolved', true);
+        $comment = $this->plugin()->comments->getById($id);
+
+        if ($comment === null) {
+            return $this->asFailure(Craft::t('publishr', 'No such comment.'));
+        }
+
+        $this->requireCanView($this->entry($comment->elementId, $comment->siteId));
+
+        // Resolving clears a "comments resolved" requirement, so it is the author's call or a
+        // manager's — not every colleague who can comment.
+        $isAuthor = $comment->authorId !== null && $comment->authorId === $this->currentUserId();
+
+        if (!$isAuthor && !Craft::$app->getUser()->checkPermission(Plugin::PERMISSION_MANAGE)) {
+            throw new ForbiddenHttpException(Craft::t('publishr', 'Only its author or an editor can resolve that.'));
+        }
 
         if (!$this->plugin()->comments->resolve($id, $this->currentUserId(), $resolved)) {
             return $this->asFailure(Craft::t('publishr', 'No such comment.'));
@@ -85,5 +114,23 @@ class CommentsController extends BaseController
         $this->plugin()->comments->delete($id);
 
         return $this->asSuccess(Craft::t('publishr', 'Deleted.'));
+    }
+
+    /** @throws BadRequestHttpException */
+    private function entry(int $elementId, int $siteId): Entry
+    {
+        $entry = Entry::find()
+            ->id($elementId)
+            ->siteId($siteId)
+            ->status(null)
+            ->drafts(null)
+            ->revisions(false)
+            ->one();
+
+        if (!$entry instanceof Entry) {
+            throw new BadRequestHttpException('No such entry.');
+        }
+
+        return $entry;
     }
 }

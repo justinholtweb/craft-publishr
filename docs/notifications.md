@@ -1,5 +1,8 @@
 ---
 title: Notifications and the digest
+slug: notifications
+order: 60
+summary: 'Pro: who gets told what, when, and the daily digest.'
 ---
 
 # Notifications and the digest

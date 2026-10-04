@@ -1,5 +1,8 @@
 ---
 title: The calendar
+slug: calendar
+order: 20
+summary: 'The month grid, its four lanes, and what a drag actually changes.'
 ---
 
 # The calendar

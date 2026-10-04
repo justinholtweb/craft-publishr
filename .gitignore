@@ -3,3 +3,4 @@
 .DS_Store
 .idea
 .phpunit.cache
+.phpstan-cache

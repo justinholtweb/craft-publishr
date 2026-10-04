@@ -55,8 +55,8 @@ class Freshness extends Component
 
         $anchor = $from
             ?? $item->lastReviewedAt
-            ?? $entry?->postDate
-            ?? $entry?->dateCreated
+            ?? $entry->postDate
+            ?? $entry->dateCreated
             ?? DateTimeHelper::now();
 
         return (clone $anchor)->add(new DateInterval('P' . max(1, $policy->intervalDays) . 'D'));
@@ -117,9 +117,10 @@ class Freshness extends Component
      * Give every managed entry that has no review date one.
      *
      * Bounded by `maxReviewsPerSweep`: a policy applied to a large archive matches thousands of
-     * entries at once, and doing them all in one request is a timeout. The next sweep simply picks
-     * up where this one stopped, because the query's condition — "review date is null" — is
-     * self-advancing.
+     * entries at once, and doing them all in one request is a timeout. The next sweep picks up
+     * where this one stopped. "Review date is null" alone is *not* self-advancing: items no policy
+     * covers, and drafts, stay null forever and would fill every window. So the sweep keeps an ID
+     * cursor and wraps to the start once it reaches the end. A cleared cache only restarts it.
      *
      * @return int How many were scheduled.
      */
@@ -135,11 +136,19 @@ class Freshness extends Component
         $limit ??= $settings->maxReviewsPerSweep;
         $scheduled = 0;
 
+        $cache = Craft::$app->getCache();
+        $cursorKey = 'publishr:freshness-cursor';
+        $cursor = (int)$cache->get($cursorKey);
+
         $records = ItemRecord::find()
             ->where(['reviewDue' => null])
+            ->andWhere(['>', 'id', $cursor])
             ->orderBy(['id' => SORT_ASC])
             ->limit($limit)
             ->all();
+
+        /** @var ItemRecord[] $records */
+        $cache->set($cursorKey, count($records) < $limit ? 0 : (int)$records[count($records) - 1]->id);
 
         foreach ($records as $record) {
             $item = $plugin->items->forElement((int)$record->elementId, (int)$record->siteId);
@@ -221,18 +230,36 @@ class Freshness extends Component
         }
 
         $policy = $this->policyFor($item);
-        $interval = max(1, $policy?->intervalDays ?? 180);
+        $interval = max(1, $policy->intervalDays ?? 180);
         $overdueDays = (int)floor(($now->getTimestamp() - $item->reviewDue->getTimestamp()) / 86400);
 
         return (int)min(100, round($overdueDays / $interval * 100));
     }
 
     /** Record that a review fell due, so the history shows the deadline as well as the response. */
+    /**
+     * Note in the history that a review fell due — once per due date, not once per sweep. The
+     * sweep can run every ten minutes, and history is never pruned by default.
+     */
     public function logDue(Item $item): void
     {
-        Plugin::getInstance()->items->log($item, HistoryEntry::EVENT_REVIEW_DUE, null, [
-            'toValue' => $item->reviewDue?->format('Y-m-d'),
-        ]);
+        $due = $item->reviewDue?->format('Y-m-d');
+
+        $logged = (new Query())
+            ->from([Table::HISTORY])
+            ->where([
+                'elementId' => $item->elementId,
+                'siteId' => $item->siteId,
+                'event' => HistoryEntry::EVENT_REVIEW_DUE,
+                'toValue' => $due,
+            ])
+            ->exists();
+
+        if (!$logged) {
+            Plugin::getInstance()->items->log($item, HistoryEntry::EVENT_REVIEW_DUE, null, [
+                'toValue' => $due,
+            ]);
+        }
     }
 
     /** @return array{tracked: int, scheduled: int, due: int, neverReviewed: int} */

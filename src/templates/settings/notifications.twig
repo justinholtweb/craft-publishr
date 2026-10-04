@@ -2,23 +2,32 @@
 {% import "_includes/forms.twig" as forms %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'notifications' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+{% set fullPageForm = not readOnly %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
+
+{% block sidebar %}
+    {% include "publishr/settings/_nav" with { selectedTab: selectedTab } only %}
+{% endblock %}
 
 {% block content %}
-    {% include "publishr/settings/_nav" %}
-
     {% if not allowsNotifications %}
-        <div class="pub-note pub-note--pro">{{ "Notifications and the digest are Pro features. Everything below is saved, and starts working the moment the licence is upgraded."|t('publishr') }}</div>
+        <p class="notice has-icon"><span class="icon" aria-hidden="true"></span><span>{{ "Notifications and the digest are Pro features. Everything below is saved, and starts working the moment the licence is upgraded."|t('publishr') }}</span></p>
     {% endif %}
 
-    <form method="post" accept-charset="UTF-8">
-        {{ csrfInput() }}
+    {% if not readOnly %}
         {{ actionInput('publishr/settings/save') }}
         {{ redirectInput('publishr/settings/notifications') }}
+    {% endif %}
 
         {{ forms.lightswitchField({
             label: "Send notifications"|t('publishr'),
             name: 'settings[notificationsEnabled]',
             on: settings.notificationsEnabled,
+            disabled: readOnly,
         }) }}
 
         {{ forms.textField({
@@ -27,6 +36,8 @@
             type: 'number',
             value: settings.dueSoonDays,
             size: 4,
+            errors: settings.getErrors('dueSoonDays'),
+            disabled: readOnly,
         }) }}
 
         {{ forms.lightswitchField({
@@ -34,6 +45,7 @@
             instructions: "On, so a stage move never waits on an SMTP handshake."|t('publishr'),
             name: 'settings[queueNotifications]',
             on: settings.queueNotifications,
+            disabled: readOnly,
         }) }}
 
         <hr>
@@ -44,6 +56,7 @@
             instructions: "Only to people who have something in it — a mail that says “nothing to report” is a mail people filter."|t('publishr'),
             name: 'settings[digestEnabled]',
             on: settings.digestEnabled,
+            disabled: readOnly,
         }) }}
 
         {{ forms.textField({
@@ -52,16 +65,13 @@
             type: 'number',
             value: settings.digestHorizonDays,
             size: 4,
+            errors: settings.getErrors('digestHorizonDays'),
+            disabled: readOnly,
         }) }}
 
-        <p class="light" style="font-size:12px;">
-            {{ "The digest goes out when `php craft publishr/sweep --digest=1` runs. Put that on cron once a morning."|t('publishr') }}
-        </p>
-
-        <div class="buttons">
-            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
+        <div class="smalltext light">
+            {{ "The digest goes out when `php craft publishr/sweep --digest=1` runs. Put that on cron once a morning."|t('publishr')|md(inlineOnly=true) }}
         </div>
-    </form>
 
     {% if problems|length %}
         <hr>
@@ -73,24 +83,32 @@
                     <th>{{ "Event"|t('publishr') }}</th>
                     <th>{{ "Tries"|t('publishr') }}</th>
                     <th>{{ "Error"|t('publishr') }}</th>
-                    <th></th>
+                    <th><span class="visually-hidden">{{ "Actions"|t('publishr') }}</span></th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in problems %}
                     <tr>
                         <td class="light">{{ row.dateCreated }}</td>
-                        <td>{{ row.event }}</td>
+                        <td>{{ events[row.event] ?? row.event }}</td>
                         <td>{{ row.attempts }}</td>
                         <td class="light">{{ row.error|slice(0, 120) }}</td>
                         <td class="rightalign">
-                            <form method="post" accept-charset="UTF-8" style="display:inline;">
-                                {{ csrfInput() }}
-                                {{ actionInput('publishr/settings/retry-notification') }}
-                                {{ redirectInput('publishr/settings/notifications') }}
-                                <input type="hidden" name="id" value="{{ row.id }}">
-                                <button type="submit" class="btn small">{{ "Try again"|t('publishr') }}</button>
-                            </form>
+                            {# Inside Craft's main form, so a formsubmit button rather than a form of its own. #}
+                            {% if readOnly %}
+                                <form method="post" accept-charset="UTF-8">
+                                    {{ csrfInput() }}
+                                    {{ actionInput('publishr/settings/retry-notification') }}
+                                    {{ redirectInput('publishr/settings/notifications') }}
+                                    {{ hiddenInput('id', row.id) }}
+                                    <button type="submit" class="btn small">{{ "Try again"|t('publishr') }}</button>
+                                </form>
+                            {% else %}
+                                <button type="button" class="btn small formsubmit"
+                                        data-action="publishr/settings/retry-notification"
+                                        data-redirect="{{ 'publishr/settings/notifications'|hash }}"
+                                        data-params="{{ { id: row.id }|json_encode }}">{{ "Try again"|t('publishr') }}</button>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

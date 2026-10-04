@@ -119,21 +119,21 @@ class Notifications extends Component
         $this->raise(self::EVENT_EXPIRED, $item, $this->audienceFor($item), [], $entry);
     }
 
-    public function dueSoon(Item $item, int $days): void
+    public function dueSoon(Item $item, int $days): int
     {
-        $this->raise(self::EVENT_DUE_SOON, $item, $this->audienceFor($item), ['days' => $days],
+        return $this->raise(self::EVENT_DUE_SOON, $item, $this->audienceFor($item), ['days' => $days],
             null, $this->dayKey(self::EVENT_DUE_SOON, $item));
     }
 
-    public function overdue(Item $item, int $days): void
+    public function overdue(Item $item, int $days): int
     {
-        $this->raise(self::EVENT_OVERDUE, $item, $this->audienceFor($item), ['days' => $days],
+        return $this->raise(self::EVENT_OVERDUE, $item, $this->audienceFor($item), ['days' => $days],
             null, $this->dayKey(self::EVENT_OVERDUE, $item));
     }
 
-    public function reviewDue(Item $item): void
+    public function reviewDue(Item $item): int
     {
-        $this->raise(self::EVENT_REVIEW_DUE, $item, $this->audienceFor($item), [],
+        return $this->raise(self::EVENT_REVIEW_DUE, $item, $this->audienceFor($item), [],
             null, $this->dayKey(self::EVENT_REVIEW_DUE, $item));
     }
 
@@ -282,6 +282,12 @@ class Notifications extends Component
             return true;
         }
 
+        // Addressed to a person by name. A mention or an assignment that only reached people who
+        // had already subscribed would miss exactly the colleague it was for.
+        if (in_array($event, [self::EVENT_MENTION, self::EVENT_ASSIGNED], true)) {
+            return true;
+        }
+
         $records = SubscriptionRecord::find()
             ->where(['userId' => $userId])
             ->all();
@@ -312,6 +318,26 @@ class Notifications extends Component
      * @return array{sent: int, failed: int}
      */
     public function sendPending(int $limit = 200): array
+    {
+        // Cron, the queue job every raise() pushes, and the CP's "Try again" can all arrive at
+        // once, and on a host with several queue workers often do. The dedupe key only protects
+        // the insert; without a lock, two of them would send the same pending rows twice.
+        $mutex = Craft::$app->getMutex();
+        $lock = 'publishr:send-notifications';
+
+        if (!$mutex->acquire($lock)) {
+            return ['sent' => 0, 'failed' => 0];
+        }
+
+        try {
+            return $this->sendBatch($limit);
+        } finally {
+            $mutex->release($lock);
+        }
+    }
+
+    /** @return array{sent: int, failed: int} */
+    private function sendBatch(int $limit): array
     {
         $sent = 0;
         $failed = 0;

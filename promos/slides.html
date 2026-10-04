@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<!-- handmade: hand-tuned deck -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Publishr — Plugin Store promos</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --charcoal: #0e0f1c;
+    --charcoal-light: #161830;
+    --charcoal-lighter: #22254a;
+    --accent: #4A4FA8;          /* the icon's tile */
+    --accent-mid: #7479D6;
+    --accent-light: #ABAFF6;    /* the indigo, lifted far enough to read as text on the dark ground */
+    --gold: #ffd166;
+    --off-white: #f0f0f7;
+  }
+
+  html { background: #000; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--off-white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- slide shell ---------------------------------------------------- */
+  .slide {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 85% 12%, rgba(74, 79, 168, 0.42) 0%, transparent 42%),
+      radial-gradient(ellipse at 62% 4%,  rgba(171, 175, 246, 0.12) 0%, transparent 34%),
+      radial-gradient(ellipse at 12% 88%, rgba(255, 209, 102, 0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 35% 96%, rgba(74, 79, 168, 0.18) 0%, transparent 36%),
+      linear-gradient(135deg, #0e0f1c 0%, #111329 32%, #14163a 62%, #0e0f1c 100%);
+  }
+
+  /* Watermark: the calendar glyph with the tile stripped (assets/watermark.svg). It is pushed
+     down and right until its right and bottom edges are off the slide, so what shows is the
+     binding rings and an open corner — never a closed rectangle reading as a grey box. */
+  .slide::after {
+    content: '';
+    position: absolute;
+    left: 1180px;
+    top: 520px;
+    width: 1500px;
+    height: 1500px;
+    background: url('assets/watermark.svg') no-repeat center / contain;
+    opacity: 0.03;
+    pointer-events: none;
+  }
+  .cover::after { display: none; }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--gold), var(--accent));
+    z-index: 6;
+  }
+
+  .inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 118px 130px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---- type ------------------------------------------------------------ */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 30px;
+  }
+  .eyebrow .rule { width: 58px; height: 3px; border-radius: 2px; background: var(--accent-light); }
+  .eyebrow .pro {
+    letter-spacing: 0.14em;
+    font-size: 16px;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 999px;
+    padding: 6px 14px;
+  }
+
+  h1, h2 {
+    font-family: 'Jersey 20', sans-serif;
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: 0.005em;
+  }
+
+  .gradient-text {
+    background: linear-gradient(100deg, #7479D6 0%, #ABAFF6 40%, #ffd166 72%, #7479D6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .lede { font-size: 31px; line-height: 1.45; color: rgba(240, 240, 247, 0.74); }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace; }
+
+  .points { list-style: none; margin-top: 38px; display: flex; flex-direction: column; gap: 18px; }
+  .points li { display: flex; gap: 16px; font-size: 25px; line-height: 1.42; color: rgba(240, 240, 247, 0.66); }
+  .points li::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 10px; height: 10px;
+    margin-top: 13px;
+    border-radius: 50%;
+    background: var(--accent-light);
+  }
+  .points b { color: rgba(240, 240, 247, 0.92); font-weight: 600; }
+
+  /* ---- cover ----------------------------------------------------------- */
+  .cover .inner { gap: 90px; }
+  .cover .copy { flex: 1 1 auto; }
+  .cover h1 { font-size: 176px; margin-bottom: 26px; }
+  .cover .tagline { font-size: 44px; line-height: 1.26; color: rgba(240, 240, 247, 0.8); margin-bottom: 24px; max-width: 980px; }
+  .cover .sub { font-size: 28px; line-height: 1.45; color: rgba(240, 240, 247, 0.55); margin-bottom: 48px; max-width: 940px; }
+  .cover .badges { display: flex; gap: 18px; align-items: center; }
+  .badge {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 14px 26px;
+    border-radius: 999px;
+    border: 2px solid rgba(171, 175, 246, 0.4);
+    color: rgba(240, 240, 247, 0.85);
+  }
+  .badge.price { background: var(--accent); border-color: var(--accent); color: #fff; letter-spacing: 0.04em; text-transform: none; font-size: 26px; }
+  .cover .mark img { width: 400px; height: 400px; display: block; filter: drop-shadow(0 30px 70px rgba(0,0,0,0.5)); }
+
+  /* ---- feature layout: copy left, a CP screen bleeding off right and bottom ---- */
+  .feature .copy { position: absolute; z-index: 3; left: 130px; top: 0; bottom: 0; width: 600px; display: flex; flex-direction: column; justify-content: center; }
+  .feature h2 { font-size: 92px; margin-bottom: 28px; }
+
+  .frame {
+    position: absolute;
+    z-index: 2;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 0 6px 18px rgba(0, 0, 0, 0.35);
+    background: #e4edf6;
+  }
+  .frame .chrome {
+    display: flex; align-items: center; gap: 9px;
+    padding: 13px 18px;
+    background: linear-gradient(180deg, #262842 0%, #1d1f35 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+  }
+  .frame .chrome b { width: 12px; height: 12px; border-radius: 50%; }
+  .frame .chrome b:nth-child(1) { background: #ff5f57; }
+  .frame .chrome b:nth-child(2) { background: #febc2e; }
+  .frame .chrome b:nth-child(3) { background: #28c840; }
+  .frame .chrome em { margin-left: 12px; font-style: normal; font-size: 18px; color: rgba(240, 240, 247, 0.45); }
+  /* bleeding frames lose the corners that are off-slide anyway */
+  .frame.bleed { border-radius: 14px 0 0 0; border-right: 0; border-bottom: 0; }
+
+  /* ---- Craft 5 control panel, at native CP pixel sizes ---------------
+     Values lifted from Craft 5's cp.css (gray scale, hairline, error, primary) and from
+     src/web/assets/cp/dist/publishr.css, then the whole thing is zoomed per slide. */
+  .cp {
+    --gray-050: hsl(212, 60%, 97%);
+    --gray-100: hsl(212, 50%, 93%);
+    --gray-150: hsl(212, 40%, 89%);
+    --gray-200: hsl(212, 30%, 85%);
+    --gray-300: hsl(211, 13%, 65%);
+    --gray-400: hsl(210, 10%, 53%);
+    --gray-550: hsl(210, 13%, 40%);
+    --gray-600: hsl(209, 14%, 37%);
+    --gray-700: hsl(209, 18%, 30%);
+    --gray-800: hsl(209, 20%, 25%);
+    --text-color: hsl(209, 18%, 30%);
+    --light-text-color: hsl(209, 14%, 37%);
+    --hairline-color: rgba(51, 64, 77, 0.1);
+    --error-color: #d81f23;
+    --primary-color: #dc2626;
+    --link-color: #1453db;
+    --white: #fff;
+    font-family: system-ui, -apple-system, 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.43;
+    color: var(--text-color);
+    background: var(--gray-100);
+    display: flex;
+    -webkit-font-smoothing: antialiased;
+  }
+  .cp a { color: var(--link-color); text-decoration: none; }
+  .cp .light { color: var(--light-text-color); }
+  .cp .error { color: var(--error-color); }
+
+  .cp-nav { flex: 0 0 196px; padding: 14px 10px; font-size: 13.5px; }
+  .cp-nav .site { display: flex; align-items: center; gap: 9px; font-weight: 600; padding: 4px 8px 16px; color: var(--gray-800); }
+  .cp-nav .site i { width: 24px; height: 24px; border-radius: 5px; background: var(--gray-700); display: block; }
+  .cp-nav .item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 5px; color: var(--gray-700); }
+  .cp-nav .item i { width: 16px; height: 16px; border-radius: 4px; background: var(--gray-300); display: block; flex: 0 0 auto; }
+  .cp-nav .item.on { background: var(--gray-700); color: #fff; }
+  .cp-nav .item.on img { width: 16px; height: 16px; border-radius: 3px; }
+  .cp-nav .sub { padding: 4px 0 6px 34px; }
+  .cp-nav .sub a { display: block; padding: 4px 8px; border-radius: 4px; color: var(--gray-700); font-size: 13px; }
+  .cp-nav .sub a.on { background: var(--gray-150); font-weight: 600; }
+
+  .cp-main { flex: 1 1 auto; min-width: 0; padding: 0 22px 24px 8px; }
+  .cp-head { display: flex; align-items: center; gap: 10px; padding: 18px 2px 16px; }
+  .cp-head h1 { font-family: system-ui, -apple-system, 'Inter', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.2; color: var(--gray-800); letter-spacing: 0; }
+  .cp-head .crumb { font-size: 12px; color: var(--light-text-color); }
+  .cp-head .sp { flex: 1 1 auto; }
+  .cp-pane {
+    background: var(--white);
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(51, 64, 77, 0.08), 0 2px 12px rgba(205, 216, 228, 0.5);
+    padding: 22px 24px;
+  }
+
+  .cp .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 32px; padding: 0 12px;
+    border-radius: 5px;
+    background: hsl(212, 25%, 88%);
+    color: var(--gray-800);
+    font-size: 13.5px; font-weight: 500;
+    white-space: nowrap;
+  }
+  .cp .btn.small { height: 26px; font-size: 12px; padding: 0 9px; }
+  .cp .btn.submit { background: var(--primary-color); color: #fff; }
+  .cp .select {
+    display: inline-flex; align-items: center; gap: 22px;
+    height: 32px; padding: 0 10px 0 11px;
+    border-radius: 5px;
+    background: hsl(212, 25%, 88%);
+    font-size: 13.5px; color: var(--gray-800);
+  }
+  .cp .select::after { content: ''; width: 6px; height: 6px; border: solid var(--gray-600); border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); }
+  .cp .select.full { display: flex; justify-content: space-between; }
+  .cp input.text, .cp .text {
+    display: inline-flex; align-items: center;
+    height: 32px; padding: 0 9px;
+    border-radius: 4px;
+    border: 1px solid rgba(96, 125, 159, 0.25);
+    background: hsl(212, 50%, 99%);
+    font-size: 13.5px; color: var(--gray-800);
+  }
+  .cp .text.ph { color: var(--gray-300); }
+
+  .cp .status { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; border: 1px solid transparent; }
+  .cp .status.live { background: hsl(173, 80%, 36%); }
+  .cp .status.pending { background: #fb923c; }
+  .cp .status.expired { background: #dc2626; }
+  .cp .status.disabled { background: transparent; border-color: var(--gray-400); }
+  /* stage dots and stripes share Craft's palette (publishr.css maps .pub-c-* onto the -500s) */
+  .cp .status.gray { background: hsl(211, 12%, 43%); } .cp .status.blue { background: #3b82f6; }
+  .cp .status.orange { background: #f97316; } .cp .status.teal { background: #14b8a6; }
+  .cp .status.green { background: #22c55e; }
+
+  .cp table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .cp table.data th { text-align: left; font-weight: 600; color: var(--gray-600); font-size: 12.5px; padding: 8px 10px; border-bottom: 1px solid var(--hairline-color); background: var(--gray-050); white-space: nowrap; }
+  .cp table.data td { padding: 9px 10px; border-bottom: 1px solid var(--hairline-color); vertical-align: top; white-space: nowrap; }
+  .cp table.data td .s { font-size: 11px; }
+  .cp h2.cph { font-family: system-ui, -apple-system, 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: var(--gray-800); margin: 20px 0 10px; line-height: 1.3; letter-spacing: 0; }
+
+  /* --- publishr.css, verbatim apart from the variables above ----------- */
+  .pub-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 18px; }
+  .pub-toolbar__spacer { flex: 1 1 auto; }
+  .pub-month { font-size: 18px; font-weight: 600; min-width: 190px; text-align: center; color: var(--gray-800); }
+  .pub-lanes { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pub-lane-toggle { border: 1px solid var(--hairline-color); border-radius: 999px; padding: 3px 11px; font-size: 12px; background: var(--gray-050); color: var(--text-color); }
+  .pub-lane-toggle.is-on { background: var(--gray-800); color: #fff; border-color: var(--gray-800); }
+
+  .pub-grid { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  .pub-grid th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--light-text-color); padding: 6px 4px; text-align: left; font-weight: 600; }
+  .pub-grid td { vertical-align: top; border: 1px solid var(--hairline-color); padding: 0; height: 104px; width: 14.28%; }
+  .pub-day { padding: 5px 6px 8px; height: 100%; box-sizing: border-box; position: relative; }
+  .pub-day--outside { background: var(--gray-050); }
+  .pub-day--outside .pub-day__n { color: var(--light-text-color); font-weight: 400; }
+  .pub-day--today .pub-day__n { background: var(--primary-color); color: #fff; border-radius: 999px; padding: 0 6px; }
+  .pub-day__n { font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 5px; }
+  .pub-day__more { font-size: 11px; color: var(--light-text-color); margin-top: 3px; }
+  .pub-day.is-dropping { outline: 2px dashed var(--primary-color); outline-offset: -3px; }
+
+  .pub-pip { display: block; font-size: 12px; line-height: 1.3; padding: 3px 6px 3px 8px; margin-bottom: 3px; border-radius: 3px; border-left: 3px solid var(--gray-400); background: var(--gray-050); color: var(--text-color) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pub-pip--late { border-left-color: var(--error-color) !important; }
+  .pub-pip__lane { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--light-text-color); margin-right: 4px; }
+  .pub-pip--draft { font-style: italic; }
+  .pub-pip--ghost { position: absolute; z-index: 5; width: 150px; transform: rotate(-3deg); box-shadow: 0 10px 24px rgba(31, 41, 51, 0.28); background: #fff; }
+  .pub-pip--lifted { opacity: .35; }
+
+  .pub-c-gray { border-left-color: hsl(211, 12%, 43%); } .pub-c-orange { border-left-color: #f97316; }
+  .pub-c-green { border-left-color: #22c55e; } .pub-c-teal { border-left-color: #14b8a6; }
+  .pub-c-blue { border-left-color: #3b82f6; }
+
+  .pub-board { display: flex; gap: 14px; align-items: flex-start; }
+  .pub-col { flex: 0 0 244px; background: var(--gray-050); border-radius: 6px; padding: 10px; }
+  .pub-col__h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; font-weight: 600; font-size: 13px; color: var(--gray-800); }
+  .pub-col__n { color: var(--light-text-color); font-weight: 400; }
+  .pub-card { background: var(--white); border: 1px solid var(--hairline-color); border-left-width: 3px; border-radius: 4px; padding: 8px 10px; margin-bottom: 7px; }
+  .pub-card__t { font-weight: 500; font-size: 13px; display: block; }
+  .pub-card__m { display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--light-text-color); margin-top: 5px; }
+  .pub-card__m .is-late { color: var(--error-color); font-weight: 600; }
+
+  .pub-panel__row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 13px; }
+  .pub-panel__l { color: var(--light-text-color); }
+  .pub-gate { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; padding: 4px 0; }
+  .pub-gate__i { flex: 0 0 auto; width: 14px; text-align: center; font-weight: 700; }
+  .pub-gate--pass .pub-gate__i { color: #1a7f37; }
+  .pub-gate--fail .pub-gate__i { color: var(--error-color); }
+  .pub-gate--warn .pub-gate__i { color: #b56a00; }
+  .pub-gate--skip { color: var(--light-text-color); }
+  .pub-gate--skip .pub-gate__d { color: var(--gray-400); }
+  .pub-gate__d { color: var(--light-text-color); }
+  .pub-gate input { margin-top: 1px; }
+  .pub-comment { border-top: 1px solid var(--hairline-color); padding: 7px 0; font-size: 12px; }
+  .pub-comment__h { display: flex; justify-content: space-between; gap: 8px; color: var(--light-text-color); font-size: 11px; }
+  .pub-comment__b { margin-top: 3px; }
+
+  .pub-stats { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
+  .pub-stat { flex: 1 1 130px; background: var(--gray-050); border-radius: 6px; padding: 13px 15px; }
+  .pub-stat__n { display: block; font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--gray-800); }
+  .pub-stat__l { display: block; font-size: 12px; color: var(--light-text-color); margin-top: 3px; }
+  .pub-bar { height: 8px; border-radius: 999px; background: var(--gray-200); overflow: hidden; margin-top: 6px; }
+  .pub-bar__f { height: 100%; background: var(--primary-color); }
+
+  /* ---- slide-level callouts ------------------------------------------- */
+  .callout {
+    position: absolute;
+    z-index: 4;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 12px;
+    padding: 18px 24px;
+    font-size: 23px;
+    line-height: 1.38;
+    box-shadow: 0 18px 44px rgba(10, 10, 30, 0.5);
+    border: 1px solid rgba(255,255,255,0.16);
+  }
+  .callout b { font-weight: 700; }
+  .callout small { display: block; font-size: 18px; color: rgba(255,255,255,0.75); margin-top: 4px; }
+
+  /* ---- slide 3: the two axes ------------------------------------------ */
+  .axes-label {
+    position: absolute; z-index: 4;
+    font-size: 19px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .axes-label span { display: block; font-size: 22px; letter-spacing: 0; text-transform: none; font-weight: 500; margin-top: 4px; color: rgba(240,240,247,0.7); }
+  .cp td.ax-pub, .cp th.ax-pub { background: rgba(74, 79, 168, 0.08); }
+  .cp td.ax-craft, .cp th.ax-craft { background: rgba(13, 148, 136, 0.08); }
+
+  /* ---- slide 4: header row over the board ----------------------------- */
+  .wide .head { position: absolute; z-index: 3; left: 130px; right: 130px; top: 104px; display: flex; gap: 80px; align-items: flex-end; }
+  .wide .head .l { flex: 0 0 auto; }
+  .wide .head h2 { font-size: 88px; }
+  .wide .head .lede { font-size: 27px; max-width: 840px; padding-bottom: 6px; }
+
+  /* ---- slide 7: editions ---------------------------------------------- */
+  .closing .inner { flex-direction: column; align-items: flex-start; justify-content: center; }
+  .closing h2 { font-size: 96px; margin-bottom: 40px; }
+  .editions { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; width: 1660px; }
+  .ed { border-radius: 16px; border: 1px solid rgba(255,255,255,0.09); background: rgba(34, 37, 74, 0.45); padding: 34px 40px 30px; }
+  .ed.pro { border-color: rgba(171,175,246,0.45); background: rgba(74, 79, 168, 0.22); }
+  .ed .top { display: flex; align-items: baseline; gap: 18px; margin-bottom: 6px; }
+  .ed .top b { font-family: 'Jersey 20', sans-serif; font-weight: 400; font-size: 64px; line-height: 1; }
+  .ed .top .price { margin-left: auto; font-size: 40px; font-weight: 700; color: var(--off-white); }
+  .ed .top .price small { font-size: 20px; font-weight: 500; color: rgba(240,240,247,0.5); margin-left: 6px; }
+  .ed .what { font-size: 24px; color: var(--accent-light); margin-bottom: 20px; }
+  .ed ul { list-style: none; display: grid; gap: 10px; }
+  .ed li { display: flex; gap: 14px; align-items: flex-start; font-size: 23px; line-height: 1.35; color: rgba(240,240,247,0.78); }
+  .ed li svg { flex: 0 0 auto; margin-top: 3px; }
+  .ed li em { font-style: normal; color: rgba(240,240,247,0.48); }
+  .install { margin-top: 38px; display: flex; align-items: center; gap: 34px; width: 1660px; }
+  .install code {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 29px;
+    padding: 22px 32px;
+    border-radius: 12px;
+    background: rgba(8, 9, 20, 0.75);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--off-white);
+    white-space: nowrap;
+  }
+  .install code span { color: var(--accent-light); }
+  .install p { font-size: 22px; line-height: 1.45; color: rgba(240,240,247,0.55); }
+  .install p b { color: rgba(240,240,247,0.82); font-weight: 600; }
+
+  /* ---- footer lockup --------------------------------------------------- */
+  .footer {
+    position: absolute;
+    left: 130px;
+    bottom: 50px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 22px;
+    color: rgba(240, 240, 247, 0.45);
+  }
+  .footer img { width: 40px; height: 40px; border-radius: 9px; }
+  .footer b { color: rgba(240, 240, 247, 0.75); font-weight: 600; }
+
+  body.single .slide { display: none; }
+  body.single .slide.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Cover ============================================================ -->
+<section class="slide cover" data-n="1">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Craft CMS 5</div>
+      <h1 class="gradient-text">Publishr</h1>
+      <p class="tagline">Editorial calendar and content<br>governance for Craft CMS.</p>
+      <p class="sub">Craft knows when an entry was published. It does not know who is writing the next one, when it is due, or who has to sign it off.</p>
+      <div class="badges">
+        <span class="badge price">Lite $59 · Pro $129</span>
+        <span class="badge">No per-entry limits</span>
+      </div>
+    </div>
+    <div class="mark"><img src="assets/icon.svg" alt=""></div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Publishr</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-publishr</div>
+</section>
+
+<!-- 2 · The calendar ===================================================== -->
+<section class="slide feature" data-n="2">
+  <div class="copy" style="width: 540px;">
+    <div class="eyebrow"><span class="rule"></span> The calendar</div>
+    <h2>An entry is<br>not an event</h2>
+    <p class="lede">A piece has up to four dates worth seeing: due, publishing, expiring, review. Each has its own lane, so one piece turns up on several days.</p>
+    <ul class="points">
+      <li><span>Drag a pip and <b>the lane decides which date moves</b>: the deadline in due, the post date in publishing</span></li>
+      <li><span>Unpublished drafts are on it, in italics</span></li>
+      <li><span>Colour is the stage. Red means late.</span></li>
+    </ul>
+  </div>
+
+  <div class="frame bleed" style="left: 720px; top: 112px; width: 1250px; height: 1000px;">
+    <div class="chrome"><b></b><b></b><b></b><em>Publishr → Calendar</em></div>
+    <div class="cp" style="zoom: 1.3;">
+      <div class="cp-main" style="padding-left: 22px; padding-right: 70px;">
+        <div class="cp-head"><h1>Calendar</h1><span class="sp"></span><span class="btn">Board</span></div>
+        <div class="cp-pane">
+          <div class="pub-toolbar">
+            <span class="btn">&larr;</span>
+            <span class="pub-month">October 2026</span>
+            <span class="btn">&rarr;</span>
+            <span class="btn">Today</span>
+            <span class="pub-toolbar__spacer"></span>
+            <div class="pub-lanes">
+              <span class="pub-lane-toggle is-on">Due</span>
+              <span class="pub-lane-toggle is-on">Publishing</span>
+              <span class="pub-lane-toggle is-on">Expiring</span>
+              <span class="pub-lane-toggle is-on">Review</span>
+            </div>
+          </div>
+          <table class="pub-grid">
+            <thead><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="pub-day pub-day--outside"><span class="pub-day__n">28</span>
+                  <a class="pub-pip pub-c-green"><span class="pub-pip__lane">pub</span>Roundup #39</a></div></td>
+                <td><div class="pub-day pub-day--outside"><span class="pub-day__n">29</span></div></td>
+                <td><div class="pub-day pub-day--outside"><span class="pub-day__n">30</span>
+                  <a class="pub-pip pub-c-green"><span class="pub-pip__lane">exp</span>September events</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">1</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">2</span>
+                  <a class="pub-pip pub-c-blue pub-pip--late"><span class="pub-pip__lane">due</span>Roundup #40</a></div></td>
+                <td><div class="pub-day pub-day--today"><span class="pub-day__n">3</span>
+                  <a class="pub-pip pub-c-blue pub-pip--late"><span class="pub-pip__lane">pub</span>Roundup #40</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">4</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="pub-day"><span class="pub-day__n">5</span>
+                  <a class="pub-pip pub-c-blue"><span class="pub-pip__lane">due</span>Winter pricing, explained</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">6</span>
+                  <a class="pub-pip pub-c-green"><span class="pub-pip__lane">rev</span>Contact us</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">7</span>
+                  <a class="pub-pip pub-c-gray pub-pip--draft"><span class="pub-pip__lane">due</span>Night-shift nurses</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">8</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">9</span>
+                  <a class="pub-pip pub-c-orange pub-pip--draft pub-pip--lifted"><span class="pub-pip__lane">due</span>River cleanup at 10</a>
+                  <a class="pub-pip pub-c-teal"><span class="pub-pip__lane">pub</span>Roundup #41</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">10</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">11</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="pub-day"><span class="pub-day__n">12</span>
+                  <a class="pub-pip pub-c-blue pub-pip--draft"><span class="pub-pip__lane">pub</span>Winter pricing, explained</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">13</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">14</span>
+                  <a class="pub-pip pub-c-orange pub-pip--draft"><span class="pub-pip__lane">due</span>Permit renewals guide</a></div></td>
+                <td><div class="pub-day is-dropping"><span class="pub-day__n">15</span>
+                  <a class="pub-pip pub-c-orange pub-pip--draft pub-pip--ghost" style="left: 10px; top: 44px; width: 132px;"><span class="pub-pip__lane">due</span>River cleanup at 10</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">16</span>
+                  <a class="pub-pip pub-c-gray pub-pip--draft"><span class="pub-pip__lane">pub</span>Night-shift nurses</a>
+                  <a class="pub-pip pub-c-teal"><span class="pub-pip__lane">pub</span>Roundup #42</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">17</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">18</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="pub-day"><span class="pub-day__n">19</span>
+                  <a class="pub-pip pub-c-green"><span class="pub-pip__lane">rev</span>Cookie policy</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">20</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">21</span>
+                  <a class="pub-pip pub-c-orange pub-pip--draft"><span class="pub-pip__lane">pub</span>River cleanup at 10</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">22</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">23</span>
+                  <a class="pub-pip pub-c-teal"><span class="pub-pip__lane">pub</span>Roundup #43</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">24</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">25</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="pub-day"><span class="pub-day__n">26</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">27</span>
+                  <a class="pub-pip pub-c-green"><span class="pub-pip__lane">rev</span>About the newsroom</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">28</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">29</span></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">30</span>
+                  <a class="pub-pip pub-c-green"><span class="pub-pip__lane">exp</span>Half-term opening hours</a></div></td>
+                <td><div class="pub-day"><span class="pub-day__n">31</span></div></td>
+                <td><div class="pub-day pub-day--outside"><span class="pub-day__n">1</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="callout" style="left: 1370px; top: 812px; width: 470px;">
+    <b>Dropped in the due lane,</b> so the deadline moves. Its post date on the 21st stays put.
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Publishr</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-publishr</div>
+</section>
+
+<!-- 3 · Two axes ========================================================= -->
+<section class="slide feature" data-n="3">
+  <div class="copy" style="width: 560px;">
+    <div class="eyebrow"><span class="rule"></span> Editorial stages</div>
+    <h2>A stage is<br>not a status</h2>
+    <p class="lede">Craft answers “is this public?” Publishr answers “where is this in the process?” It keeps its answer next to Craft’s and never rewrites it.</p>
+    <ul class="points">
+      <li><span>Your own stages: rename, recolour, reorder</span></li>
+      <li><span><b>Turn Publishr off and every entry is exactly as public as it was</b></span></li>
+      <li><span>Every move written to an append-only history: who, when, from where</span></li>
+    </ul>
+  </div>
+
+  <div class="axes-label" style="left: 1188px; top: 158px; color: var(--accent-light);"><div>Publishr<span>where it is in the process</span></div></div>
+  <div class="axes-label" style="left: 1745px; top: 158px; color: #5fd3c4;"><div>Craft<span>is it public</span></div></div>
+
+  <div class="frame bleed" style="left: 770px; top: 268px; width: 1200px; height: 850px;">
+    <div class="chrome"><b></b><b></b><b></b><em>Publishr → Overview</em></div>
+    <div class="cp" style="zoom: 1.42;">
+      <div class="cp-main" style="padding-left: 22px;">
+        <div class="cp-head"><h1>Overview</h1></div>
+        <div class="cp-pane">
+          <div class="pub-toolbar">
+            <span class="select">Any stage</span>
+            <span class="select">Anybody</span>
+            <span class="select">Everything</span>
+          </div>
+          <table class="data">
+            <thead><tr><th>Piece</th><th class="ax-pub">Stage</th><th>Owner</th><th>Due</th><th class="ax-craft">Status</th></tr></thead>
+            <tbody>
+              <tr><td><a>Roundup #39</a><div class="light s">News</div></td><td class="ax-pub"><span class="status green"></span>Published</td><td>Tom Bell</td><td>—</td><td class="ax-craft"><span class="status live"></span>Live</td></tr>
+              <tr><td><a>Pricing page</a> <span class="light">· 2 open</span><div class="light s">Pages</div></td><td class="ax-pub"><span class="status orange"></span>Needs edit</td><td>Dana Whitlock</td><td>8 Oct 2026</td><td class="ax-craft"><span class="status live"></span>Live</td></tr>
+              <tr><td><a>Roundup #41</a><div class="light s">News</div></td><td class="ax-pub"><span class="status teal"></span>Ready</td><td>Tom Bell</td><td>7 Oct 2026</td><td class="ax-craft"><span class="status pending"></span>Pending</td></tr>
+              <tr><td><a>Winter pricing, explained</a><div class="light s">Explainers</div></td><td class="ax-pub"><span class="status blue"></span>In progress</td><td>Priya Natarajan</td><td>5 Oct 2026</td><td class="ax-craft"><span class="status disabled"></span>Disabled</td></tr>
+              <tr><td><a>Roundup #40</a><div class="light s">News</div></td><td class="ax-pub"><span class="status blue"></span>In progress</td><td>Marcus Oyelaran</td><td class="error">2 Oct 2026</td><td class="ax-craft"><span class="status disabled"></span>Disabled</td></tr>
+              <tr><td><a>Night-shift nurses</a><div class="light s">Features</div></td><td class="ax-pub"><span class="status gray"></span>Idea</td><td>—</td><td>7 Oct 2026</td><td class="ax-craft"><span class="status disabled"></span>Disabled</td></tr>
+              <tr><td><a>September events</a><div class="light s">Listings</div></td><td class="ax-pub"><span class="status green"></span>Published</td><td>Tom Bell</td><td>—</td><td class="ax-craft"><span class="status expired"></span>Expired</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Publishr</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-publishr</div>
+</section>
+
+<!-- 4 · Board, owners, Alarm Clock ======================================= -->
+<section class="slide wide" data-n="4">
+  <div class="head">
+    <div class="l">
+      <div class="eyebrow"><span class="rule"></span> Assignments and deadlines</div>
+      <h2>Who has it, and<br>when it’s due</h2>
+    </div>
+    <p class="lede">The owner is not the author: whoever wrote it in March is rarely the one fixing it in October. The deadline is not the post date either. The board shows both, stage by stage.</p>
+  </div>
+
+  <div class="frame bleed" style="left: 130px; top: 420px; width: 1820px; height: 700px; border-radius: 14px 14px 0 0; border-right: 1px solid rgba(255,255,255,0.10);">
+    <div class="chrome"><b></b><b></b><b></b><em>Publishr → Board</em></div>
+    <div class="cp" style="zoom: 1.32;">
+      <div class="cp-main" style="padding-left: 22px;">
+        <div class="cp-head"><h1>Board</h1><span class="sp"></span><span class="btn">Calendar</span></div>
+        <div class="cp-pane" style="padding: 18px 20px;">
+          <div class="pub-board">
+            <div class="pub-col">
+              <div class="pub-col__h"><span>Idea</span><span class="pub-col__n">23</span></div>
+              <div class="pub-card pub-c-gray"><a class="pub-card__t">Night-shift nurses</a><div class="pub-card__m"><span>Unassigned</span><span>7 Oct</span></div></div>
+              <div class="pub-card pub-c-gray"><a class="pub-card__t">Who owns the riverbank?</a><div class="pub-card__m"><span>Unassigned</span></div></div>
+              <div class="pub-card pub-c-gray"><a class="pub-card__t">Ten cheap days out</a><div class="pub-card__m"><span>Marcus Oyelaran</span><span>1 open</span></div></div>
+            </div>
+            <div class="pub-col">
+              <div class="pub-col__h"><span>In progress</span><span class="pub-col__n">14</span></div>
+              <div class="pub-card pub-c-blue"><a class="pub-card__t">Roundup #40</a><div class="pub-card__m"><span>Marcus Oyelaran</span><span class="is-late">2 Oct</span></div></div>
+              <div class="pub-card pub-c-blue"><a class="pub-card__t">Winter pricing, explained</a><div class="pub-card__m"><span>Priya Natarajan</span><span>5 Oct</span><span>2 open</span></div></div>
+              <div class="pub-card pub-c-blue"><a class="pub-card__t">Bus routes from January</a><div class="pub-card__m"><span>Tom Bell</span><span>19 Oct</span></div></div>
+            </div>
+            <div class="pub-col">
+              <div class="pub-col__h"><span>Needs edit</span><span class="pub-col__n">6</span></div>
+              <div class="pub-card pub-c-orange"><a class="pub-card__t">River cleanup at 10</a><div class="pub-card__m"><span>Dana Whitlock</span><span>15 Oct</span></div></div>
+              <div class="pub-card pub-c-orange"><a class="pub-card__t">Pricing page</a><div class="pub-card__m"><span>Dana Whitlock</span><span>8 Oct</span><span>2 open</span></div></div>
+              <div class="pub-card pub-c-orange"><a class="pub-card__t">Permit renewals guide</a><div class="pub-card__m"><span>Priya Natarajan</span><span>14 Oct</span></div></div>
+            </div>
+            <div class="pub-col">
+              <div class="pub-col__h"><span>Ready</span><span class="pub-col__n">5</span></div>
+              <div class="pub-card pub-c-teal"><a class="pub-card__t">Roundup #41</a><div class="pub-card__m"><span>Tom Bell</span><span>7 Oct</span></div></div>
+              <div class="pub-card pub-c-teal"><a class="pub-card__t">Library hours change</a><div class="pub-card__m"><span>Dana Whitlock</span><span>6 Oct</span></div></div>
+            </div>
+            <div class="pub-col">
+              <div class="pub-col__h"><span>Published</span><span class="pub-col__n">1,098</span></div>
+              <div class="pub-card pub-c-green"><a class="pub-card__t">Council tax: what changes</a><div class="pub-card__m"><span>Priya Natarajan</span></div></div>
+              <div class="pub-card pub-c-green"><a class="pub-card__t">Roundup #39</a><div class="pub-card__m"><span>Tom Bell</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="callout" style="left: 1286px; top: 862px; width: 590px;">
+    <b>Goes live → Published, within a minute.</b> Alarm Clock notices the post date pass; nobody drags the card. The met deadline clears.
+  </div>
+  <div class="footer" style="display:none;"></div>
+</section>
+
+<!-- 5 · Pro: publish requirements ======================================== -->
+<section class="slide feature" data-n="5">
+  <div class="copy" style="width: 600px;">
+    <div class="eyebrow"><span class="rule"></span> Publish requirements <span class="pro">Pro</span></div>
+    <h2>Checked at<br>sign-off, not<br>at save</h2>
+    <p class="lede">Fields, word count, alt text, open comments, boxes a person ticks, and a clean pass from RedPen. Required ones block the move; advisory ones warn.</p>
+    <ul class="points">
+      <li><span><b>“I don’t know” is never “no.”</b> A requirement that can’t run is skipped, and skipped never blocks.</span></li>
+      <li><span>Overrides need a permission, and the name goes in the history</span></li>
+    </ul>
+  </div>
+
+  <div class="frame bleed" style="left: 800px; top: 112px; width: 1170px; height: 1000px;">
+    <div class="chrome"><b></b><b></b><b></b><em>Entries → Explainers → Winter pricing, explained</em></div>
+    <div class="cp" style="zoom: 1.6; display: block; background: var(--gray-100);">
+      <div style="display: flex; gap: 16px; padding: 16px 0 0 18px; align-items: flex-start;">
+        <div class="cp-pane" style="flex: 0 0 360px; padding: 20px 22px; height: 640px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 6px;">Title</div>
+          <div class="text" style="width: 100%;">Winter pricing, explained</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--gray-800); margin: 18px 0 6px;">Body</div>
+          <div style="border: 1px solid rgba(96,125,159,0.25); border-radius: 4px; padding: 12px; font-size: 12.5px; line-height: 1.6; color: var(--gray-700); height: 150px; overflow: hidden;">
+            From 1 December, standard tickets rise by 20p and the day pass by 50p. Concessions do not change. Here is what that means if you travel every day, and what to do if you have already bought a season ticket…
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--gray-800); margin: 18px 0 6px;">Lead image</div>
+          <div style="display:flex; gap:8px;"><div style="width:84px; height:58px; border-radius:4px; background: linear-gradient(135deg,#9fb4cc,#d6e0ea);"></div><div style="width:84px; height:58px; border-radius:4px; background: linear-gradient(135deg,#c6b39b,#e6dccf);"></div></div>
+        </div>
+        <div style="flex: 0 0 300px; padding: 0 4px;">
+          <div class="pub-panel">
+            <h2 class="cph" style="margin-top: 2px;">Editorial</h2>
+            <div style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Stage</div>
+            <div class="select full" style="margin-bottom: 10px;">In progress</div>
+            <div style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Owner</div>
+            <div class="select full" style="margin-bottom: 10px;">Priya Natarajan</div>
+            <div style="font-size: 12.5px; font-weight: 600; margin-bottom: 4px;">Due</div>
+            <div style="display:flex; gap: 6px; margin-bottom: 4px;"><span class="text" style="flex:1;">05/10/2026</span><span class="btn small" style="height:32px;">Set</span></div>
+
+            <h2 class="cph" style="margin-top: 14px;">Requirements <span class="light" style="font-weight: 400;">3/6</span></h2>
+            <div class="pub-gate pub-gate--pass"><span class="pub-gate__i">✓</span><span><strong>Required fields</strong></span></div>
+            <div class="pub-gate pub-gate--pass"><span class="pub-gate__i">✓</span><span><strong>Has an owner</strong><span class="pub-gate__d"> — Priya Natarajan</span></span></div>
+            <div class="pub-gate pub-gate--pass"><span class="pub-gate__i">✓</span><span><strong>Has a publish date</strong><span class="pub-gate__d"> — 2026-10-12 09:00</span></span></div>
+            <div class="pub-gate pub-gate--fail"><span class="pub-gate__i">✕</span><span><strong>Minimum length</strong><span class="pub-gate__d"> — 412 words — 600 needed</span></span></div>
+            <div class="pub-gate pub-gate--warn"><span class="pub-gate__i">✕</span><span><strong>Lead image</strong><span class="pub-gate__d"> — One image has no alt text</span></span></div>
+            <div class="pub-gate pub-gate--skip"><span class="pub-gate__i">·</span><span><strong>Passes RedPen</strong><span class="pub-gate__d"> — RedPen couldn’t review this piece.</span></span></div>
+            <div class="pub-gate pub-gate--fail"><span class="pub-gate__i">✕</span><span><strong>Legal sign-off</strong><span class="pub-gate__d"> — 1 of 2 ticked</span></span></div>
+            <div style="margin-top: 6px;">
+              <label class="pub-gate"><input type="checkbox" checked><span>Fares checked against the rate card</span></label>
+              <label class="pub-gate"><input type="checkbox"><span>Legal has seen it</span></label>
+            </div>
+            <span class="btn small" style="margin-top: 8px;">Check again</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="callout" style="left: 852px; top: 846px; width: 548px; background: #2a2c48;">
+    <b style="color:#ff8a8a;">Not yet:</b> 412 words — 600 needed;<br>1 of 2 ticked
+    <small>Trying to move it to Ready</small>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Publishr</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-publishr</div>
+</section>
+
+<!-- 6 · Pro: freshness, report, digest =================================== -->
+<section class="slide feature" data-n="6">
+  <div class="copy" style="width: 580px;">
+    <div class="eyebrow"><span class="rule"></span> Freshness and reporting <span class="pro">Pro</span></div>
+    <h2>Nothing tells<br>you a page has<br>gone stale</h2>
+    <p class="lede">A policy says how long a kind of content stays good for. The clock runs from the last human review, or from the post date, so the first sweep finds the real backlog.</p>
+    <ul class="points">
+      <li><span>Typical age per stage is a <b>median</b>, not a mean</span></li>
+      <li><span>CSV export, one row per piece</span></li>
+      <li><span>One digest a morning, only to people with something in it</span></li>
+    </ul>
+  </div>
+
+  <div class="frame bleed" style="left: 790px; top: 112px; width: 1180px; height: 412px;">
+    <div class="chrome"><b></b><b></b><b></b><em>Publishr → Reviews</em></div>
+    <div class="cp" style="zoom: 1.3;">
+      <div class="cp-main" style="padding-left: 22px;">
+        <div class="cp-head"><h1>Reviews</h1><span class="sp"></span><span class="btn">Schedule outstanding</span></div>
+        <div class="cp-pane" style="padding: 16px 20px;">
+          <table class="data">
+            <thead><tr><th>Piece</th><th>Policy</th><th>Last reviewed</th><th>Due</th><th style="width: 120px;">Staleness</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><a>Pricing page</a></td><td class="light">Evergreen pages</td><td class="light">14 Mar 2025</td><td class="error">10 Sep 2025</td><td><div class="pub-bar"><div class="pub-bar__f" style="width: 100%;"></div></div></td><td><span class="btn small">Mark reviewed</span></td></tr>
+              <tr><td><a>Accessibility statement</a></td><td class="light">Policies</td><td class="light">never</td><td class="error">2 Feb 2026</td><td><div class="pub-bar"><div class="pub-bar__f" style="width: 66%;"></div></div></td><td><span class="btn small">Mark reviewed</span></td></tr>
+              <tr><td><a>Recycling collection days</a></td><td class="light">Guides</td><td class="light">3 Mar 2026</td><td class="error">30 Aug 2026</td><td><div class="pub-bar"><div class="pub-bar__f" style="width: 19%;"></div></div></td><td><span class="btn small">Mark reviewed</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame bleed" style="left: 860px; top: 562px; width: 1110px; height: 560px;">
+    <div class="chrome"><b></b><b></b><b></b><em>Publishr → Report</em></div>
+    <div class="cp" style="zoom: 1.3;">
+      <div class="cp-main" style="padding-left: 22px;">
+        <div class="cp-head"><h1>Report</h1><span class="sp"></span><span class="btn">Export CSV</span></div>
+        <div class="cp-pane" style="padding: 16px 20px;">
+          <div class="pub-stats" style="margin-bottom: 4px;">
+            <div class="pub-stat"><span class="pub-stat__n">71%</span><span class="pub-stat__l">of entries are on the calendar (1,146 of 1,612)</span></div>
+            <div class="pub-stat"><span class="pub-stat__n">9</span><span class="pub-stat__l">past their deadline</span></div>
+            <div class="pub-stat"><span class="pub-stat__n">4</span><span class="pub-stat__l">with nobody responsible</span></div>
+            <div class="pub-stat"><span class="pub-stat__n">47</span><span class="pub-stat__l">overdue a freshness review</span></div>
+          </div>
+          <h2 class="cph">Where work is sitting</h2>
+          <table class="data">
+            <thead><tr><th>Stage</th><th>Pieces</th><th>Overdue</th><th>Typical age</th></tr></thead>
+            <tbody>
+              <tr><td><span class="status gray"></span>Idea</td><td>23</td><td>0</td><td class="light">41 days</td></tr>
+              <tr><td><span class="status blue"></span>In progress</td><td>14</td><td class="error">3</td><td class="light">9 days</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Publishr</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-publishr</div>
+</section>
+
+<!-- 7 · Editions ========================================================= -->
+<section class="slide closing" data-n="7">
+  <div class="inner">
+    <div class="eyebrow"><span class="rule"></span> Two editions</div>
+    <h2>Lite plans the work. <span class="gradient-text">Pro governs it.</span></h2>
+    <div class="editions">
+      <div class="ed">
+        <div class="top"><b>Lite</b><span class="price">$59</span></div>
+        <div class="what">The calendar and the desk</div>
+        <ul>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ABAFF6" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Month calendar, all four lanes</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ABAFF6" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Board and overview</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ABAFF6" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Editorial stages <em>&nbsp;up to 5</em></li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ABAFF6" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Assignments and deadlines</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ABAFF6" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Editorial comments, with @mentions</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ABAFF6" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Stage history and activity log</li>
+        </ul>
+      </div>
+      <div class="ed pro">
+        <div class="top"><b>Pro</b><span class="price">$129</span></div>
+        <div class="what">Everything in Lite, plus governance</div>
+        <ul>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited stages</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Publish requirements, including RedPen</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Freshness reviews and policies</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Notifications and the daily digest</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Governance report and CSV export</li>
+          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Section subscriptions</li>
+        </ul>
+      </div>
+    </div>
+    <div class="install">
+      <code><span>$</span> composer require justinholtweb/craft-publishr</code>
+      <p><b>Neither edition is capped by volume.</b> Craft 5.3+, PHP 8.2+.<br>Better with Alarm Clock and RedPen; needs neither.</p>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Publishr</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-publishr</div>
+</section>
+
+<script>
+  var n = new URLSearchParams(location.search).get('s');
+  if (n) {
+    document.body.classList.add('single');
+    var el = document.querySelector('.slide[data-n="' + n + '"]');
+    if (el) el.classList.add('active');
+  }
+</script>
+</body>
+</html>

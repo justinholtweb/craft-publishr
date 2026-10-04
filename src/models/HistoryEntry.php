@@ -61,14 +61,14 @@ class HistoryEntry extends Model
     /** A one-line description, for the activity list and the digest. */
     public function describe(): string
     {
-        $who = $this->getUser()?->friendlyName ?? Craft::t('publishr', 'Publishr');
+        $who = $this->getUser()->friendlyName ?? Craft::t('publishr', 'Publishr');
 
         return match ($this->event) {
             self::EVENT_CREATED => Craft::t('publishr', '{who} started tracking this', ['who' => $who]),
             self::EVENT_STAGE => Craft::t('publishr', '{who} moved this from {from} to {to}', [
                 'who' => $who,
-                'from' => $this->getFromStage()?->name ?? Craft::t('publishr', 'nowhere'),
-                'to' => $this->getToStage()?->name ?? Craft::t('publishr', 'nowhere'),
+                'from' => $this->getFromStage()->name ?? Craft::t('publishr', 'nowhere'),
+                'to' => $this->getToStage()->name ?? Craft::t('publishr', 'nowhere'),
             ]),
             self::EVENT_ASSIGNED => $this->toValue !== null
                 ? Craft::t('publishr', '{who} assigned this to {to}', ['who' => $who, 'to' => $this->toValue])

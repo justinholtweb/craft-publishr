@@ -144,6 +144,34 @@ class Plugin extends BasePlugin
         $this->stages->installDefaults();
     }
 
+    /**
+     * Take Publishr's own project-config root with it.
+     *
+     * Craft clears `plugins.publishr` and nothing else, so `publishr.stages.*` and friends would
+     * outlive the uninstall: every later `project-config/diff` carries them, and a reinstall seeds
+     * five fresh stages beside the five orphans. Events are muted because the handlers delete rows
+     * from tables the uninstall migration has already dropped.
+     */
+    protected function afterUninstall(): void
+    {
+        parent::afterUninstall();
+
+        $projectConfig = Craft::$app->getProjectConfig();
+
+        if ($projectConfig->getIsApplyingExternalChanges()) {
+            return;
+        }
+
+        $muted = $projectConfig->muteEvents;
+        $projectConfig->muteEvents = true;
+
+        try {
+            $projectConfig->remove('publishr', 'Remove Publishr’s stages, requirements and policies');
+        } finally {
+            $projectConfig->muteEvents = $muted;
+        }
+    }
+
     public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();
@@ -165,14 +193,7 @@ class Plugin extends BasePlugin
         // does not exist yet would take the whole CP down at exactly the moment somebody was
         // trying to fix it.
         try {
-            $mine = $this->items->forAssignee((int)$user->getId(), null, 500);
-            $late = 0;
-
-            foreach ($mine as $entry) {
-                if ($entry->isOverdue()) {
-                    $late++;
-                }
-            }
+            $late = $this->items->overdueCountFor((int)$user->getId());
 
             if ($late > 0) {
                 $item['badgeCount'] = $late;
@@ -320,6 +341,13 @@ class Plugin extends BasePlugin
             // because somebody pressed "revert". Found by the check suite, which deleted a draft
             // and watched the item vanish underneath it.
             if ($entry->getIsDraft() || $entry->getIsRevision()) {
+                return;
+            }
+
+            // A soft delete is a trip to the trash, and the trash has a Restore button. Deleting
+            // the item here would restore the entry without its stage, owner or deadline. Trashed
+            // entries already drop out of every list, and a hard delete cascades through the FK.
+            if (!$entry->hardDelete) {
                 return;
             }
 

@@ -9,13 +9,23 @@
         <div class="flex">
             <label class="visually-hidden" for="pub-site">{{ "Site"|t('publishr') }}</label>
             <div class="select">
-                <select id="pub-site" onchange="window.location.search = '?site=' + this.value">
+                <select id="pub-site">
                     {% for option in siteOptions %}
                         <option value="{{ option.value }}" {{ option.value == siteHandle ? 'selected' }}>{{ option.label }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
+        {% js %}
+            {# Only the site changes. Every other filter on the screen survives the switch. #}
+            document.getElementById('pub-site').addEventListener('change', function () {
+                var url = new URL(window.location.href);
+                url.searchParams.set('site', this.value);
+                window.location.href = url.toString();
+            });
+        {% endjs %}
     {% endif %}
     {% block screenActions %}{% endblock %}
+    {# Craft's own Save button, on screens that set fullPageForm. #}
+    {{ parent() }}
 {% endblock %}

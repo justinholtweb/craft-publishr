@@ -1,0 +1,20 @@
+includes:
+    - vendor/craftcms/phpstan/phpstan.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+    tmpDir: .phpstan-cache
+    ignoreErrors:
+        # Yii's ActiveQuery::all() is typed array|ActiveRecord[], so every property read off a
+        # record row looks like it might be on an array. They are records.
+        - '#Cannot access property \$\w+ on array<mixed>\|yii\\db\\ActiveRecord\.#'
+        - '#expects justinholtweb\\publishr\\records\\\w+, array<mixed>\|yii\\db\\ActiveRecord given\.#'
+        # craft\mail\Message::setTo() accepts a User; phpstan only sees yii's MessageInterface.
+        - '#Parameter \#1 \$to of method yii\\mail\\MessageInterface::setTo\(\) expects array\|string, craft\\elements\\User given\.#'
+        # Alarm Clock and RedPen are resolved by class-name string at runtime, never imported —
+        # see CLAUDE.md. Their services are reached through the generic plugin interface.
+        -
+            message: '#Access to an undefined property craft\\base\\PluginInterface#'
+            path: src/integrations/*

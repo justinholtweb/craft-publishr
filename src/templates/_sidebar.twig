@@ -4,33 +4,43 @@
   Everything in here is a `<div>` and every action posts through `Craft.sendActionRequest`. The
   panel renders *inside* Craft's element-editor form, and a nested `<form>` does not fail cleanly:
   the parser drops the tag and keeps the children, leaving a second `action` input in the page
-  form — and Craft takes the last one.
+  form — and Craft takes the last one. For the same reason no control in here has a `name`: a
+  named input would be posted with the entry.
+
+  The asset bundle is registered here, not by the screens' layout: the entry editor never loads
+  that layout, and in a slideout a bundle registered during this render rides along with the HTML.
 #}
 
-{% set canEdit = canManage and item %}
+{% do view.registerAssetBundle("justinholtweb\\publishr\\web\\assets\\cp\\CpAsset") %}
 
-<div class="pub-panel"
+{% set canEdit = canManage and item %}
+{# A full-page editor and a slideout can both be open, so every id is scoped to this render. #}
+{% set uid = 'publishr-' ~ entry.id ~ '-' ~ random() %}
+
+<fieldset class="pub-panel"
      data-pub-panel
      data-element-id="{{ entry.getCanonicalId() }}"
      data-site-id="{{ entry.siteId }}">
-
-    <hr>
-    <h2>{{ "Editorial"|t('publishr') }}</h2>
+    <legend class="h6">{{ "Editorial"|t('publishr') }}</legend>
 
     {% if not item %}
+        <div class="meta">
         <p class="light">{{ "This piece isn’t on the calendar."|t('publishr') }}</p>
         {% if canManage %}
             <button type="button" class="btn small" data-pub-action="publishr/items/track">
-                {{ "Add it"|t('publishr') }}
+                <div class="label">{{ "Add it"|t('publishr') }}</div>
+                <div class="spinner spinner-absolute"></div>
             </button>
         {% endif %}
+        </div>
     {% else %}
+        <div class="meta">
         <div class="field">
-            <div class="heading"><label>{{ "Stage"|t('publishr') }}</label></div>
+            <div class="heading"><label{% if canEdit %} for="{{ uid }}-stage"{% endif %}>{{ "Stage"|t('publishr') }}</label></div>
             <div class="input">
                 {% if canEdit %}
                     <div class="select fullwidth">
-                        <select data-pub-stage-select data-current="{{ item.stageId }}">
+                        <select id="{{ uid }}-stage" data-pub-stage-select data-current="{{ item.stageId }}">
                             <option value="">{{ "—"|t('publishr') }}</option>
                             {% for stage in stages %}
                                 <option value="{{ stage.id }}" {{ item.stageId == stage.id ? 'selected' }}>
@@ -40,20 +50,26 @@
                         </select>
                     </div>
                 {% else %}
-                    <span class="status {{ item.getStage() ? item.getStage().color : 'gray' }}"></span>
+                    <span class="status {{ item.getStage() ? item.getStage().color : 'gray' }}" aria-hidden="true"></span>
                     {{ item.getStage() ? item.getStage().name : "—"|t('publishr') }}
                 {% endif %}
             </div>
         </div>
 
         <div class="field">
-            <div class="heading"><label>{{ "Owner"|t('publishr') }}</label></div>
+            <div class="heading"><label{% if canAssign %} for="{{ uid }}-owner"{% endif %}>{{ "Owner"|t('publishr') }}</label></div>
             <div class="input">
                 {% if canAssign %}
+                    {# Only people who can see Publishr at all can be handed a piece in it. #}
+                    {% set people = craft.users.can('publishr:view').status('active').limit(500).all() %}
+                    {% set current = item.getAssignee() %}
                     <div class="select fullwidth">
-                        <select data-pub-assignee>
+                        <select id="{{ uid }}-owner" data-pub-assignee>
                             <option value="">{{ "Nobody"|t('publishr') }}</option>
-                            {% for user in craft.users.limit(200).all() %}
+                            {% if current and current.id not in people|column('id') %}
+                                <option value="{{ current.id }}" selected>{{ current.friendlyName }}</option>
+                            {% endif %}
+                            {% for user in people|sort((a, b) => a.friendlyName <=> b.friendlyName) %}
                                 <option value="{{ user.id }}" {{ item.assigneeId == user.id ? 'selected' }}>{{ user.friendlyName }}</option>
                             {% endfor %}
                         </select>
@@ -65,19 +81,20 @@
         </div>
 
         <div class="field">
-            <div class="heading"><label>{{ "Due"|t('publishr') }}</label></div>
+            <div class="heading"><label for="{{ uid }}-due">{{ "Due"|t('publishr') }}</label></div>
             <div class="input flex">
-                <input class="text" type="date" data-pub-due
+                <input class="text" type="date" id="{{ uid }}-due" data-pub-due
                        value="{{ item.dueDate ? item.dueDate|date('Y-m-d') : '' }}"
                        {{ canEdit ? '' : 'disabled' }}>
                 {% if canEdit %}
                     <button type="button" class="btn small" data-pub-action="publishr/items/due" data-pub-reload="no">
-                        {{ "Set"|t('publishr') }}
+                        <div class="label">{{ "Set"|t('publishr') }}</div>
+                        <div class="spinner spinner-absolute"></div>
                     </button>
                 {% endif %}
             </div>
             {% if item.isOverdue() %}
-                <p class="error" style="font-size:11px;">
+                <p class="error pub-panel__hint">
                     {{ "{n} days past the deadline."|t('publishr', { n: item.daysUntilDue()|abs }) }}
                 </p>
             {% endif %}
@@ -89,24 +106,30 @@
                 <span class="{{ item.isReviewOverdue() ? 'error' }}">{{ item.reviewDue|date('j M Y') }}</span>
             </div>
         {% endif %}
+    </div>
 
         {# ---------------------------------------------------------- requirements #}
 
         {% if isPro and report and report.results|length %}
-            <h2 style="margin-top:16px;">
+            <fieldset>
+            <legend class="h6">
                 {{ "Requirements"|t('publishr') }}
                 <span class="light">{{ report.passedCount() }}/{{ report.applicableCount() }}</span>
-            </h2>
+            </legend>
 
             {% for result in report.results %}
                 {% set class = result.status == 'passed' ? 'pub-gate--pass'
                     : (result.status == 'skipped' ? 'pub-gate--skip'
                     : (result.severity == 'advisory' ? 'pub-gate--warn' : 'pub-gate--fail')) %}
+                {% set state = result.status == 'passed' ? "Passed"|t('publishr')
+                    : (result.status == 'skipped' ? "Skipped"|t('publishr')
+                    : (result.severity == 'advisory' ? "Warning"|t('publishr') : "Failed"|t('publishr'))) %}
                 <div class="pub-gate {{ class }}">
                     <span class="pub-gate__i" aria-hidden="true">
                         {{- result.status == 'passed' ? '✓' : (result.status == 'skipped' ? '·' : '✕') -}}
                     </span>
                     <span>
+                        <span class="visually-hidden">{{ state }}:</span>
                         <strong>{{ result.gateName }}</strong>
                         {% if result.message %}<span class="pub-gate__d"> — {{ result.message }}</span>{% endif %}
                         {% if result.detail %}<div class="pub-gate__d">{{ result.detail }}</div>{% endif %}
@@ -116,7 +139,7 @@
 
             {% for gate in craft.app.plugins.getPlugin('publishr').gates.getAllGates() %}
                 {% if gate.type == 'checklist' and gate.enabled and gate.settings.items ?? false %}
-                    <div style="margin-top:8px;">
+                    <div class="pub-panel__actions">
                         {% set ticks = (item.gateState.ticks[gate.handle] ?? []) %}
                         {% for line in gate.settings.items %}
                             <label class="pub-gate">
@@ -134,30 +157,40 @@
             {% endfor %}
 
             {% if canEdit %}
-                <button type="button" class="btn small" data-pub-action="publishr/items/check" data-pub-reload="no" style="margin-top:8px;">
-                    {{ "Check again"|t('publishr') }}
-                </button>
+                <div class="pub-panel__actions">
+                    <button type="button" class="btn small" data-pub-action="publishr/items/check" data-pub-reload="no">
+                        <div class="label">{{ "Check again"|t('publishr') }}</div>
+                        <div class="spinner spinner-absolute"></div>
+                    </button>
+                </div>
             {% endif %}
+            </fieldset>
         {% endif %}
 
         {# -------------------------------------------------------------- comments #}
 
-        <h2 style="margin-top:16px;">{{ "Comments"|t('publishr') }}</h2>
+        <fieldset>
+            <legend class="h6">{{ "Comments"|t('publishr') }}</legend>
 
-        {% for comment in comments %}
-            {% include "publishr/_partials/comment" with { comment: comment, canComment: canComment, depth: 0 } only %}
-        {% else %}
-            <p class="light" style="font-size:12px;">{{ "Nothing yet."|t('publishr') }}</p>
-        {% endfor %}
+            {% for comment in comments %}
+                {% include "publishr/_partials/comment" with { comment: comment, canComment: canComment, depth: 0 } only %}
+            {% else %}
+                <p class="light pub-panel__empty">{{ "Nothing yet."|t('publishr') }}</p>
+            {% endfor %}
 
-        {% if canComment %}
-            <div style="margin-top:8px;">
-                <textarea class="text fullwidth" rows="2" data-pub-comment-body
-                          placeholder="{{ 'Note for the desk. @name to tell somebody.'|t('publishr') }}"></textarea>
-                <button type="button" class="btn small submit" data-pub-action="publishr/comments/save" style="margin-top:5px;">
-                    {{ "Post"|t('publishr') }}
-                </button>
-            </div>
-        {% endif %}
+            {% if canComment %}
+                <div class="pub-panel__actions">
+                    <label class="visually-hidden" for="{{ uid }}-comment">{{ "Comment"|t('publishr') }}</label>
+                    <textarea class="text fullwidth" rows="2" id="{{ uid }}-comment" data-pub-comment-body
+                              placeholder="{{ 'Note for the desk. @name to tell somebody.'|t('publishr') }}"></textarea>
+                    <div class="pub-panel__actions">
+                        <button type="button" class="btn small submit" data-pub-action="publishr/comments/save">
+                            <div class="label">{{ "Post"|t('publishr') }}</div>
+                            <div class="spinner spinner-absolute"></div>
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </fieldset>
     {% endif %}
-</div>
+</fieldset>

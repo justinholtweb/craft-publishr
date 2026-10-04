@@ -1,5 +1,8 @@
 ---
 title: FAQ
+slug: faq
+order: 130
+summary: 'Short answers to the questions people ask before installing.'
 ---
 
 # Frequently asked questions
@@ -58,6 +61,12 @@ entry sidebar shows it, and so does **Overview → Activity**.
 
 It should not be. A cached verdict is trusted only while it is at or after the entry's own
 `dateUpdated`. If you are seeing this, press **Check again** and tell us what the dates were.
+
+**What does it cost?**
+
+Lite is $59 and Pro is $129, per production site. Lite is the calendar, the board, stages,
+assignments and history; Pro adds publish requirements, freshness reviews, notifications and the
+report. See [Installation](installation.md#editions) for the full table.
 
 **My licence lapsed. Did I lose my stages?**
 

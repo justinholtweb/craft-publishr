@@ -10,7 +10,7 @@
 
 .pub-lanes { display: flex; gap: 6px; flex-wrap: wrap; }
 .pub-lane-toggle { border: 1px solid var(--hairline-color); border-radius: 999px; padding: 3px 11px; font-size: 12px; cursor: pointer; background: var(--gray-050); color: var(--text-color); }
-.pub-lane-toggle.is-on { background: var(--gray-800); color: #fff; border-color: var(--gray-800); }
+.pub-lane-toggle.is-on { background: var(--gray-800); color: var(--white); border-color: var(--gray-800); }
 
 /* The grid. `table-layout: fixed` is not decoration — without it a single long headline in one
    cell stretches its column and skews the whole month. */
@@ -19,26 +19,19 @@
 .pub-grid td { vertical-align: top; border: 1px solid var(--hairline-color); padding: 0; height: 116px; width: 14.28%; }
 .pub-day { padding: 5px 6px 8px; height: 100%; box-sizing: border-box; }
 .pub-day--outside { background: var(--gray-050); }
-.pub-day--outside .pub-day__n { opacity: .45; }
-.pub-day--today .pub-day__n { background: var(--primary-color); color: #fff; border-radius: 999px; padding: 0 6px; }
+.pub-day--outside .pub-day__n { color: var(--light-text-color); font-weight: 400; }
+.pub-day--today .pub-day__n { background: var(--primary-color); color: var(--white); border-radius: 999px; padding: 0 6px; }
 .pub-day__n { font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 5px; }
 .pub-day__more { font-size: 11px; color: var(--light-text-color); margin-top: 3px; }
 .pub-day.is-dropping { outline: 2px dashed var(--primary-color); outline-offset: -3px; }
 
 .pub-pip { display: block; font-size: 12px; line-height: 1.3; padding: 3px 6px 3px 8px; margin-bottom: 3px; border-radius: 3px; border-left: 3px solid var(--gray-400); background: var(--gray-050); color: var(--text-color); text-decoration: none; cursor: grab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pub-pip:hover { background: var(--gray-100); }
-.pub-pip--late { border-left-color: var(--error-color); }
-.pub-pip__lane { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; opacity: .6; margin-right: 4px; }
-.pub-pip--draft { font-style: italic; }
+.pub-pip:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+.pub-pip[draggable="false"] { cursor: pointer; }
 
-.pub-c-gray { border-left-color: #8f98a3; } .pub-c-red { border-left-color: #cf1124; }
-.pub-c-orange { border-left-color: #d9480f; } .pub-c-amber { border-left-color: #b56a00; }
-.pub-c-yellow { border-left-color: #a37500; } .pub-c-lime { border-left-color: #5b8c00; }
-.pub-c-green { border-left-color: #1a7f37; } .pub-c-teal { border-left-color: #0b7285; }
-.pub-c-cyan { border-left-color: #0b7285; } .pub-c-blue { border-left-color: #1c64f2; }
-.pub-c-indigo { border-left-color: #4a4fa8; } .pub-c-violet { border-left-color: #6941c6; }
-.pub-c-purple { border-left-color: #7e3af2; } .pub-c-fuchsia { border-left-color: #a21caf; }
-.pub-c-pink { border-left-color: #d6336c; }
+.pub-pip__lane { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--light-text-color); margin-right: 4px; }
+.pub-pip--draft { font-style: italic; }
 
 /* Board */
 .pub-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
@@ -49,22 +42,52 @@
 .pub-card__t { font-weight: 500; font-size: 13px; }
 .pub-card__m { display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--light-text-color); margin-top: 5px; }
 .pub-card__m .is-late { color: var(--error-color); font-weight: 600; }
+.pub-col__empty, .pub-col__more { font-size: 12px; }
+.pub-col__more { font-size: 11px; }
+
+/* Stage colours, on the same palette as Craft's own `.status.<colour>` dots, so a stage's dot
+   and its stripe on a pip or a card are the same colour. The hex is only a fallback. */
+.pub-c-gray { border-left-color: var(--gray-500, #9ca3af); }
+.pub-c-red { border-left-color: var(--red-500, #ef4444); }
+.pub-c-orange { border-left-color: var(--orange-500, #f97316); }
+.pub-c-amber { border-left-color: var(--amber-500, #f59e0b); }
+.pub-c-yellow { border-left-color: var(--yellow-500, #eab308); }
+.pub-c-lime { border-left-color: var(--lime-500, #84cc16); }
+.pub-c-green { border-left-color: var(--green-500, #22c55e); }
+.pub-c-emerald { border-left-color: var(--emerald-500, #10b981); }
+.pub-c-teal { border-left-color: var(--teal-500, #14b8a6); }
+.pub-c-cyan { border-left-color: var(--cyan-500, #06b6d4); }
+.pub-c-sky { border-left-color: var(--sky-500, #0ea5e9); }
+.pub-c-blue { border-left-color: var(--blue-500, #3b82f6); }
+.pub-c-indigo { border-left-color: var(--indigo-500, #6366f1); }
+.pub-c-violet { border-left-color: var(--violet-500, #8b5cf6); }
+.pub-c-purple { border-left-color: var(--purple-500, #a855f7); }
+.pub-c-fuchsia { border-left-color: var(--fuchsia-500, #d946ef); }
+.pub-c-pink { border-left-color: var(--pink-500, #ec4899); }
+.pub-c-rose { border-left-color: var(--rose-500, #f43f5e); }
+
+/* After the stage colours, and more specific, so lateness beats whatever stage a piece is on. */
+.pub-pip.pub-pip--late { border-left-color: var(--error-color); }
 
 /* Sidebar panel */
 .pub-panel { margin-top: 14px; }
+.pub-panel legend.h6 { margin-top: 14px; }
+.pub-panel__actions { margin-top: 8px; }
+.pub-panel__hint { font-size: 11px; margin: 4px 0 0; }
+.pub-panel__empty { font-size: 12px; }
 .pub-panel__row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 13px; }
 .pub-panel__row + .pub-panel__row { border-top: 1px solid var(--hairline-color); }
 .pub-panel__l { color: var(--light-text-color); }
 .pub-gate { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; padding: 4px 0; }
 .pub-gate__i { flex: 0 0 auto; width: 14px; text-align: center; font-weight: 700; }
-.pub-gate--pass .pub-gate__i { color: #1a7f37; }
+.pub-gate--pass .pub-gate__i { color: var(--success-color); }
 .pub-gate--fail .pub-gate__i { color: var(--error-color); }
-.pub-gate--warn .pub-gate__i { color: #b56a00; }
-.pub-gate--skip { opacity: .55; }
+.pub-gate--warn .pub-gate__i { color: var(--warning-color); }
+.pub-gate--skip { color: var(--light-text-color); }
 .pub-gate__d { color: var(--light-text-color); }
 
 .pub-comment { border-top: 1px solid var(--hairline-color); padding: 7px 0; font-size: 12px; }
-.pub-comment--resolved { opacity: .5; }
+.pub-comment--resolved .pub-comment__b { color: var(--light-text-color); text-decoration: line-through; text-decoration-color: var(--hairline-color); }
 .pub-comment__h { display: flex; justify-content: space-between; gap: 8px; color: var(--light-text-color); font-size: 11px; }
 .pub-comment__b { margin-top: 3px; white-space: pre-wrap; }
 .pub-comment--reply { margin-left: 14px; border-left: 2px solid var(--hairline-color); padding-left: 8px; border-top: 0; }
@@ -81,4 +104,24 @@
 
 .pub-empty { padding: 30px; text-align: center; color: var(--light-text-color); }
 .pub-note { background: var(--gray-050); border-left: 3px solid var(--gray-400); padding: 10px 13px; border-radius: 0 4px 4px 0; margin-bottom: 16px; font-size: 13px; }
-.pub-note--pro { border-left-color: #4a4fa8; }
+.pub-note--pro { border-left-color: var(--indigo-500, #6366f1); }
+
+/* Small shared bits that would otherwise be inline styles. */
+.pub-sub { font-size: 11px; }
+.pub-col-check { width: 24px; }
+.pub-col-bar { width: 140px; }
+.pub-footnote { font-size: 11px; }
+.pub-toolbar--foot { margin-top: 16px; }
+.pub-inline { display: inline; }
+
+/* Forced colours drop backgrounds and borders that carry meaning; keep the stage stripe and today. */
+@media (forced-colors: active) {
+    .pub-pip, .pub-card { forced-color-adjust: none; }
+    .pub-day--today .pub-day__n { outline: 2px solid CanvasText; }
+}
+
+/* Narrow screens: a seven-column month does not fit a phone, so let it scroll rather than crush. */
+@media (max-width: 767px) {
+    .pub-calendar-wrap { overflow-x: auto; }
+    .pub-grid { min-width: 720px; }
+}

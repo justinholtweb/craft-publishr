@@ -1,5 +1,8 @@
 ---
 title: Console commands
+slug: console
+order: 110
+summary: 'The sweep, the digest, status, and tracking existing entries.'
 ---
 
 # Console commands

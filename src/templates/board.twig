@@ -9,11 +9,12 @@
     <form method="get" class="pub-toolbar">
         {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
         <div class="select">
-            <select name="assigneeId" onchange="this.form.submit()">
+            <select name="assigneeId" data-pub-autosubmit aria-label="{{ 'Whose pieces'|t('publishr') }}">
                 <option value="">{{ "Everybody"|t('publishr') }}</option>
                 <option value="me" {{ assigneeId == currentUser.id ? 'selected' }}>{{ "Just mine"|t('publishr') }}</option>
             </select>
         </div>
+        <noscript><button type="submit" class="btn">{{ "Filter"|t('publishr') }}</button></noscript>
     </form>
 
     <div class="pub-board">
@@ -36,6 +37,7 @@
 
                             {% if card.item and card.item.dueDate %}
                                 <span class="{{ card.item.isOverdue() ? 'is-late' }}">
+                                    {% if card.item.isOverdue() %}<span class="visually-hidden">{{ "Overdue:"|t('publishr') }}</span>{% endif %}
                                     {{ card.item.dueDate|date('j M') }}
                                 </span>
                             {% endif %}
@@ -46,11 +48,11 @@
                         </div>
                     </div>
                 {% else %}
-                    <p class="light" style="font-size:12px;">{{ "Nothing here."|t('publishr') }}</p>
+                    <p class="light pub-col__empty">{{ "Nothing here."|t('publishr') }}</p>
                 {% endfor %}
 
                 {% if column.total > column.cards|length %}
-                    <p class="light" style="font-size:11px;">
+                    <p class="light pub-col__more">
                         {{ "Showing {n} of {total}."|t('publishr', { n: column.cards|length, total: column.total }) }}
                     </p>
                 {% endif %}

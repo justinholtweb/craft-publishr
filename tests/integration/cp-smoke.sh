@@ -141,6 +141,11 @@ switch_edition() {
         require "/var/www/html/bootstrap.php";
         $app = require CRAFT_VENDOR_PATH . "/craftcms/cms/bootstrap/console.php";
         Craft::$app->getPlugins()->switchEdition("publishr", $argv[1]);
+        // Web requests read the YAML, so it has to be on disk before the next curl — otherwise
+        // the database says Lite, the site serves Pro, and the plugin takes the blame.
+        $pc = Craft::$app->getProjectConfig();
+        $pc->saveModifiedConfigData();
+        $pc->writeYamlFiles(true);
     ' "$1" >/dev/null 2>&1
 }
 
@@ -148,7 +153,7 @@ current_edition() {
     php -r '
         require "/var/www/html/bootstrap.php";
         $app = require CRAFT_VENDOR_PATH . "/craftcms/cms/bootstrap/console.php";
-        echo Craft::$app->getPlugins()->getPlugin("publishr")->edition;
+        echo Craft::$app->getProjectConfig()->get("plugins.publishr.edition", true);
     ' 2>/dev/null
 }
 
@@ -176,8 +181,16 @@ echo "Under a Lite licence"
 
 switch_edition lite
 
-refused "the governance report" "/admin/publishr/report"
-refused "freshness reviews"     "/admin/publishr/reviews"
+# The switch writes project config, and on a contended harness that write can fail silently —
+# leaving Pro in the YAML the web reads and making the next two checks blame the plugin for the
+# harness. Confirm it against the YAML, not the database.
+if [ "$(current_edition)" != "lite" ]; then
+    echo "  ✗ could not switch to Lite (project config write failed?) — the boundary was not tested"
+    fail=$((fail + 1))
+else
+    refused "the governance report" "/admin/publishr/report"
+    refused "freshness reviews"     "/admin/publishr/reviews"
+fi
 
 # Lite keeps the calendar, and that is the whole point of the split.
 screen "the calendar still works" "/admin/publishr/calendar"

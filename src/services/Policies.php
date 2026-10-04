@@ -7,11 +7,11 @@ namespace justinholtweb\publishr\services;
 use Craft;
 use craft\base\Component;
 use craft\db\Query;
+use craft\elements\Entry;
 use craft\events\ConfigEvent;
 use craft\helpers\Db;
 use craft\helpers\Json;
 use craft\helpers\StringHelper;
-use craft\elements\Entry;
 use justinholtweb\publishr\models\Edition;
 use justinholtweb\publishr\models\Policy;
 use justinholtweb\publishr\Plugin;
@@ -174,7 +174,7 @@ class Policies extends Component
         $record->intervalDays = (int)($data['intervalDays'] ?? 180);
         $record->remindDaysBefore = (int)($data['remindDaysBefore'] ?? 14);
         $record->assignTo = $data['assignTo'] ?? Policy::ASSIGN_CURRENT;
-        $record->assigneeId = $data['assigneeId'] ?? null;
+        $record->assigneeId = $this->resolveAssignee($data['assigneeUid'] ?? null);
         $record->enabled = (bool)($data['enabled'] ?? true);
         $record->sortOrder = $data['sortOrder'] ?? null;
         $record->save(false);
@@ -241,5 +241,24 @@ class Policies extends Component
         }
 
         return is_array($value) ? $value : [];
+    }
+
+    /**
+     * A reviewer named in project config, as an ID on this environment. A user who does not exist
+     * here becomes "nobody" rather than a foreign-key failure that aborts the whole apply.
+     */
+    private function resolveAssignee(?string $uid): ?int
+    {
+        if ($uid === null || $uid === '') {
+            return null;
+        }
+
+        $id = Craft::$app->getUsers()->getUserByUid($uid)?->id;
+
+        if ($id === null) {
+            Craft::warning("Freshness policy reviewer {$uid} does not exist on this environment.", __METHOD__);
+        }
+
+        return $id !== null ? (int)$id : null;
     }
 }

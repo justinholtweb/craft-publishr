@@ -1,5 +1,8 @@
 ---
 title: Twig reference
+slug: twig
+order: 100
+summary: 'The read-only craft.publishr variable for front-end templates.'
 ---
 
 # Twig reference

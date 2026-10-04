@@ -1,5 +1,8 @@
 ---
 title: Publish requirements
+slug: requirements
+order: 40
+summary: 'Pro: yes/no checks a piece must pass before it can be signed off.'
 ---
 
 # Publish requirements

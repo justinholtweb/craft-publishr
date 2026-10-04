@@ -1,8 +1,12 @@
-{# The tabs across every settings screen. #}
-<nav class="pub-toolbar">
-    <a class="btn {{ selectedTab == 'general' ? 'active' }}" href="{{ url('publishr/settings/general') }}">{{ "General"|t('publishr') }}</a>
-    <a class="btn {{ selectedTab == 'stages' ? 'active' }}" href="{{ url('publishr/settings/stages') }}">{{ "Stages"|t('publishr') }}</a>
-    <a class="btn {{ selectedTab == 'gates' ? 'active' }}" href="{{ url('publishr/settings/gates') }}">{{ "Requirements"|t('publishr') }}</a>
-    <a class="btn {{ selectedTab == 'policies' ? 'active' }}" href="{{ url('publishr/settings/policies') }}">{{ "Freshness"|t('publishr') }}</a>
-    <a class="btn {{ selectedTab == 'notifications' ? 'active' }}" href="{{ url('publishr/settings/notifications') }}">{{ "Notifications"|t('publishr') }}</a>
-</nav>
+{# The settings sub-navigation, in the CP sidebar. Include `with { selectedTab } only`. #}
+{% include "_includes/nav" with {
+    label: "Settings"|t('publishr'),
+    items: {
+        general: { label: "General"|t('publishr'), url: 'publishr/settings/general' },
+        stages: { label: "Stages"|t('publishr'), url: 'publishr/settings/stages' },
+        gates: { label: "Requirements"|t('publishr'), url: 'publishr/settings/gates' },
+        policies: { label: "Freshness"|t('publishr'), url: 'publishr/settings/policies' },
+        notifications: { label: "Notifications"|t('publishr'), url: 'publishr/settings/notifications' },
+    },
+    selectedItem: selectedTab,
+} only %}

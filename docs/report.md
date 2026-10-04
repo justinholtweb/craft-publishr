@@ -1,5 +1,8 @@
 ---
 title: The governance report
+slug: report
+order: 70
+summary: 'Pro: the governance report, workload, and CSV export.'
 ---
 
 # The governance report

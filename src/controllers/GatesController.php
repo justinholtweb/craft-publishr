@@ -8,6 +8,7 @@ use Craft;
 use justinholtweb\publishr\models\Edition;
 use justinholtweb\publishr\models\Gate;
 use justinholtweb\publishr\Plugin;
+use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
@@ -23,6 +24,11 @@ class GatesController extends BaseController
             $this->requirePermission(Plugin::PERMISSION_SETTINGS);
         }
 
+        // Requirements live in project config; see StagesController::beforeAction().
+        if (in_array($action->id, ['save', 'delete'], true) && !Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
+            throw new ForbiddenHttpException(Craft::t('publishr', 'Requirements can’t be changed in this environment.'));
+        }
+
         return true;
     }
 
@@ -36,6 +42,7 @@ class GatesController extends BaseController
             'types' => $plugin->gates->describeTypes(),
             'allowed' => Edition::allowsGates($plugin->isPro()),
             'stages' => $plugin->stages->getAllStages(),
+            'readOnly' => !Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
             'selectedTab' => 'gates',
         ]);
     }
@@ -65,11 +72,12 @@ class GatesController extends BaseController
             'unavailableReason' => $described['unavailableReason'] ?? null,
             'sections' => Craft::$app->getEntries()->getAllSections(),
             'stages' => $plugin->stages->getAllStages(),
+            'readOnly' => !Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
             'selectedTab' => 'gates',
         ]);
     }
 
-    public function actionSave(): Response
+    public function actionSave(): ?Response
     {
         $this->requirePostRequest();
 
@@ -94,9 +102,11 @@ class GatesController extends BaseController
         if (!$plugin->gates->saveGate($gate)) {
             $this->setFailFlash(Craft::t('publishr', 'Couldn’t save that requirement.'));
 
+            // Null, not a redirect: route params do not survive one, so the errors and everything
+            // typed would be lost. Craft runs this URL's edit route with the model instead.
             Craft::$app->getUrlManager()->setRouteParams(['gate' => $gate]);
 
-            return $this->redirect($this->request->getReferrer() ?? 'publishr/settings/gates');
+            return null;
         }
 
         $this->setSuccessFlash(Craft::t('publishr', 'Requirement saved.'));

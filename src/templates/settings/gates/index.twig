@@ -1,54 +1,79 @@
 {% extends "publishr/_layouts/screen" %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'gates' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+
+{% do view.registerAssetBundle('craft\\web\\assets\\admintable\\AdminTableAsset') %}
+{% do view.registerTranslations('publishr', [
+    "Requirement",
+    "Type",
+    "Severity",
+    "Applies to",
+    "No requirements yet.",
+    "Are you sure you want to delete “{name}”?",
+]) %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
 
 {% block screenActions %}
-    {% if allowed %}
+    {% if allowed and not readOnly %}
         <a class="btn submit add icon" href="{{ url('publishr/settings/gates/new') }}">{{ "New requirement"|t('publishr') }}</a>
     {% endif %}
 {% endblock %}
 
-{% block content %}
-    {% include "publishr/settings/_nav" %}
+{% block sidebar %}
+    {% include "publishr/settings/_nav" with { selectedTab: selectedTab } only %}
+{% endblock %}
 
+{% block content %}
     {% if not allowed %}
-        <div class="pub-note pub-note--pro">{{ "Publish requirements are a Pro feature."|t('publishr') }}</div>
+        <p class="notice has-icon"><span class="icon" aria-hidden="true"></span><span>{{ "Publish requirements are a Pro feature."|t('publishr') }}</span></p>
     {% endif %}
 
     <p class="light">
         {{ "A requirement is a question with a yes/no answer about a piece. Required ones block a move into a gated stage; advisory ones only warn."|t('publishr') }}
     </p>
 
-    {% if gates is empty %}
-        <div class="pub-empty">{{ "No requirements yet."|t('publishr') }}</div>
-    {% else %}
-        <table class="data fullwidth">
-            <thead>
-                <tr>
-                    <th>{{ "Requirement"|t('publishr') }}</th>
-                    <th>{{ "Type"|t('publishr') }}</th>
-                    <th>{{ "Severity"|t('publishr') }}</th>
-                    <th>{{ "Applies to"|t('publishr') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for gate in gates %}
-                    {% set type = types|filter(t => t.handle == gate.type)|first %}
-                    <tr class="{{ gate.enabled ? '' : 'disabled' }}">
-                        <td><a href="{{ url('publishr/settings/gates/' ~ gate.id) }}">{{ gate.name }}</a></td>
-                        <td class="light">
-                            {{ type ? type.name : gate.type }}
-                            {% if type and not type.available %}
-                                <span class="error">— {{ type.unavailableReason }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ gate.severity == 'required' ? "Blocks sign-off"|t('publishr') : "Warns only"|t('publishr') }}</td>
-                        <td class="light">
-                            {{ gate.stageHandles ? gate.stageHandles|join(', ') : "every gated stage"|t('publishr') }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+    <div id="pub-gates-table"></div>
+
+    {% set stageNames = {} %}
+    {% for stage in stages %}
+        {% set stageNames = stageNames|merge({ (stage.handle): stage.name }) %}
+    {% endfor %}
+
+    {% set tableData = [] %}
+    {% for gate in gates %}
+        {% set type = types|filter(t => t.handle == gate.type)|first %}
+        {% set tableData = tableData|push({
+            id: gate.id,
+            title: gate.name,
+            url: url('publishr/settings/gates/' ~ gate.id),
+            status: gate.enabled,
+            type: (type ? type.name : gate.type) ~ (type and not type.available ? ' — ' ~ type.unavailableReason : ''),
+            severity: gate.severity == 'required' ? "Blocks sign-off"|t('publishr') : "Warns only"|t('publishr'),
+            appliesTo: gate.stageHandles
+                ? gate.stageHandles|map(h => stageNames[h] ?? h)|join(', ')
+                : "every gated stage"|t('publishr'),
+        }) %}
+    {% endfor %}
+
+    {% js %}
+        new Craft.VueAdminTable({
+            container: '#pub-gates-table',
+            columns: [
+                { name: '__slot:title', title: Craft.t('publishr', 'Requirement') },
+                { name: 'type', title: Craft.t('publishr', 'Type') },
+                { name: 'severity', title: Craft.t('publishr', 'Severity') },
+                { name: 'appliesTo', title: Craft.t('publishr', 'Applies to') },
+            ],
+            tableData: {{ tableData|json_encode|raw }},
+            emptyMessage: Craft.t('publishr', 'No requirements yet.'),
+            {% if not readOnly %}
+                deleteAction: 'publishr/gates/delete',
+                deleteConfirmationMessage: Craft.t('publishr', 'Are you sure you want to delete “{name}”?'),
+            {% endif %}
+        });
+    {% endjs %}
 {% endblock %}

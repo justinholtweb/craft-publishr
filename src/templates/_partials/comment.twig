@@ -4,14 +4,16 @@
         <span>{{ comment.dateCreated ? comment.dateCreated|datetime('short') : '' }}</span>
     </div>
     <div class="pub-comment__b">{{ comment.body }}</div>
+    {% if comment.resolved %}<span class="visually-hidden">{{ "Resolved"|t('publishr') }}</span>{% endif %}
 
     {% if canComment %}
-        <div style="margin-top:4px;">
+        <div class="pub-panel__actions">
             <button type="button" class="btn small"
                     data-pub-action="publishr/comments/resolve"
                     data-id="{{ comment.id }}"
                     data-resolved="{{ comment.resolved ? '0' : '1' }}">
-                {{ comment.resolved ? "Reopen"|t('publishr') : "Resolve"|t('publishr') }}
+                <div class="label">{{ comment.resolved ? "Reopen"|t('publishr') : "Resolve"|t('publishr') }}</div>
+                <div class="spinner spinner-absolute"></div>
             </button>
         </div>
     {% endif %}

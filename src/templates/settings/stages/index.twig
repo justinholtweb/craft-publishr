@@ -1,47 +1,79 @@
 {% extends "publishr/_layouts/screen" %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'stages' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+
+{% do view.registerAssetBundle('craft\\web\\assets\\admintable\\AdminTableAsset') %}
+{% do view.registerTranslations('publishr', [
+    "Stage",
+    "Handle",
+    "Pieces",
+    "Notes",
+    "No stages exist yet.",
+    "Stages reordered.",
+    "Couldn’t reorder stages.",
+    "Are you sure you want to delete “{name}”? Pieces on it will be left without a stage.",
+]) %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
 
 {% block screenActions %}
-    {% if canCreate %}
+    {% if canCreate and not readOnly %}
         <a class="btn submit add icon" href="{{ url('publishr/settings/stages/new') }}">{{ "New stage"|t('publishr') }}</a>
     {% endif %}
 {% endblock %}
 
-{% block content %}
-    {% include "publishr/settings/_nav" %}
+{% block sidebar %}
+    {% include "publishr/settings/_nav" with { selectedTab: selectedTab } only %}
+{% endblock %}
 
+{% block content %}
     {% if not canCreate %}
-        <div class="pub-note pub-note--pro">
-            {{ "Publishr Lite supports {max} stages. Pro lets you design a workflow of your own."|t('publishr', { max: maxStages }) }}
-        </div>
+        <p class="notice has-icon">
+            <span class="icon" aria-hidden="true"></span>
+            <span>{{ "Publishr Lite supports {max} stages. Pro lets you design a workflow of your own."|t('publishr', { max: maxStages }) }}</span>
+        </p>
     {% endif %}
 
-    <table class="data fullwidth">
-        <thead>
-            <tr>
-                <th>{{ "Stage"|t('publishr') }}</th>
-                <th>{{ "Handle"|t('publishr') }}</th>
-                <th>{{ "Pieces"|t('publishr') }}</th>
-                <th>{{ "Notes"|t('publishr') }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for stage in stages %}
-                <tr>
-                    <td>
-                        <span class="status {{ stage.color }}"></span>
-                        <a href="{{ url('publishr/settings/stages/' ~ stage.id) }}">{{ stage.name }}</a>
-                    </td>
-                    <td><code>{{ stage.handle }}</code></td>
-                    <td>{{ counts[stage.id] ?? 0 }}</td>
-                    <td class="light">
-                        {%- if stage.isDefault %}{{ "Where new work starts."|t('publishr') }} {% endif -%}
-                        {%- if stage.isPublished %}{{ "Reached automatically when a piece goes live."|t('publishr') }} {% endif -%}
-                        {%- if stage.gated %}{{ "Requirements are checked before anything can move here."|t('publishr') }}{% endif -%}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div id="pub-stages-table"></div>
+
+    {% set tableData = stages|map(stage => {
+        id: stage.id,
+        title: stage.name,
+        url: url('publishr/settings/stages/' ~ stage.id),
+        handle: stage.handle,
+        colorHtml: tag('span', { class: ['status', stage.color], 'aria-hidden': 'true' }),
+        pieces: counts[stage.id] ?? 0,
+        notes: [
+            stage.isDefault ? "Where new work starts."|t('publishr'),
+            stage.isPublished ? "Reached automatically when a piece goes live."|t('publishr'),
+            stage.gated ? "Requirements are checked before anything can move here."|t('publishr'),
+        ]|filter|join(' '),
+        _showDelete: stages|length > 1,
+    }) %}
+
+    {% js %}
+        new Craft.VueAdminTable({
+            container: '#pub-stages-table',
+            columns: [
+                { name: 'colorHtml', title: '', callback: function (value) { return value; } },
+                { name: '__slot:title', title: Craft.t('publishr', 'Stage') },
+                { name: '__slot:handle', title: Craft.t('publishr', 'Handle') },
+                { name: 'pieces', title: Craft.t('publishr', 'Pieces') },
+                { name: 'notes', title: Craft.t('publishr', 'Notes') },
+            ],
+            tableData: {{ tableData|values|json_encode|raw }},
+            emptyMessage: Craft.t('publishr', 'No stages exist yet.'),
+            {% if not readOnly %}
+                reorderAction: 'publishr/stages/reorder',
+                reorderSuccessMessage: Craft.t('publishr', 'Stages reordered.'),
+                reorderFailMessage: Craft.t('publishr', 'Couldn’t reorder stages.'),
+                deleteAction: 'publishr/stages/delete',
+                deleteConfirmationMessage: Craft.t('publishr', 'Are you sure you want to delete “{name}”? Pieces on it will be left without a stage.'),
+                minItems: 1,
+            {% endif %}
+        });
+    {% endjs %}
 {% endblock %}

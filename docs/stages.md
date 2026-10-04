@@ -1,5 +1,8 @@
 ---
 title: Stages and assignments
+slug: stages
+order: 30
+summary: 'Editorial stages beside Craft''s status, plus assignments and deadlines.'
 ---
 
 # Stages and assignments

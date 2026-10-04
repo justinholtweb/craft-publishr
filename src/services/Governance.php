@@ -224,7 +224,7 @@ class Governance extends Component
 
             $out[] = [
                 'userId' => $userId,
-                'name' => $user?->friendlyName ?? Craft::t('publishr', 'Nobody'),
+                'name' => $user->friendlyName ?? Craft::t('publishr', 'Nobody'),
                 'total' => (int)$row['total'],
 
                 // SUM() over an empty group is NULL, and SUM() itself returns a *string* on both

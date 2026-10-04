@@ -1,5 +1,8 @@
 ---
 title: Permissions
+slug: permissions
+order: 90
+summary: 'The seven permissions and what each one lets somebody do.'
 ---
 
 # Permissions

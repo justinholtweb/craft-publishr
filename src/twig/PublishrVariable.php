@@ -9,6 +9,7 @@ use craft\elements\Entry;
 use DateTime;
 use DateTimeZone;
 use justinholtweb\publishr\models\CalendarEvent;
+use justinholtweb\publishr\models\Edition;
 use justinholtweb\publishr\models\GateReport;
 use justinholtweb\publishr\models\Item;
 use justinholtweb\publishr\models\Stage;
@@ -130,7 +131,14 @@ class PublishrVariable
     /** @return array<string, mixed> */
     public function report(?int $siteId = null): array
     {
-        return Plugin::getInstance()->governance->report($siteId);
+        $plugin = Plugin::getInstance();
+
+        // The report is a Pro feature, and the variable is not a back door to it.
+        if (!Edition::allowsReports($plugin->isPro())) {
+            return [];
+        }
+
+        return $plugin->governance->report($siteId);
     }
 
     public function isPro(): bool

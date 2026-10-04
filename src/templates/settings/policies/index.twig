@@ -1,18 +1,37 @@
 {% extends "publishr/_layouts/screen" %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'policies' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+
+{% do view.registerAssetBundle('craft\\web\\assets\\admintable\\AdminTableAsset') %}
+{% do view.registerTranslations('publishr', [
+    "Policy",
+    "Interval",
+    "Covers",
+    "Reviewer",
+    "No policies yet.",
+    "Policies reordered.",
+    "Couldn’t reorder policies.",
+    "Are you sure you want to delete “{name}”?",
+]) %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
 
 {% block screenActions %}
-    {% if allowed %}
+    {% if allowed and not readOnly %}
         <a class="btn submit add icon" href="{{ url('publishr/settings/policies/new') }}">{{ "New policy"|t('publishr') }}</a>
     {% endif %}
 {% endblock %}
 
-{% block content %}
-    {% include "publishr/settings/_nav" %}
+{% block sidebar %}
+    {% include "publishr/settings/_nav" with { selectedTab: selectedTab } only %}
+{% endblock %}
 
+{% block content %}
     {% if not allowed %}
-        <div class="pub-note pub-note--pro">{{ "Freshness reviews are a Pro feature."|t('publishr') }}</div>
+        <p class="notice has-icon"><span class="icon" aria-hidden="true"></span><span>{{ "Freshness reviews are a Pro feature."|t('publishr') }}</span></p>
     {% endif %}
 
     <p class="light">
@@ -25,33 +44,53 @@
         <div class="pub-stat"><span class="pub-stat__n">{{ summary.neverReviewed }}</span><span class="pub-stat__l">{{ "never reviewed"|t('publishr') }}</span></div>
     </div>
 
-    {% if policies is empty %}
-        <div class="pub-empty">{{ "No policies yet."|t('publishr') }}</div>
-    {% else %}
-        <table class="data fullwidth">
-            <thead>
-                <tr>
-                    <th>{{ "Policy"|t('publishr') }}</th>
-                    <th>{{ "Interval"|t('publishr') }}</th>
-                    <th>{{ "Covers"|t('publishr') }}</th>
-                    <th>{{ "Reviewer"|t('publishr') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for policy in policies %}
-                    <tr class="{{ policy.enabled ? '' : 'disabled' }}">
-                        <td><a href="{{ url('publishr/settings/policies/' ~ policy.id) }}">{{ policy.name }}</a></td>
-                        <td>{{ "{n} days"|t('publishr', { n: policy.intervalDays }) }}</td>
-                        <td class="light">
-                            {{ policy.sectionUids ? "{n} sections"|t('publishr', { n: policy.sectionUids|length }) : "everything"|t('publishr') }}
-                        </td>
-                        <td class="light">{{ policy.assignTo }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <p class="light" style="font-size:12px;">
-            {{ "First match wins, in this order. Not “most specific” — specificity has no reliable ordering once a policy can name both sections and entry types."|t('publishr') }}
+    <div id="pub-policies-table"></div>
+
+    {% if policies|length > 1 %}
+        <p class="smalltext light">
+            {{ "First match wins, in this order — drag to change it. Not “most specific”: specificity has no reliable ordering once a policy can name both sections and entry types."|t('publishr') }}
         </p>
     {% endif %}
+
+    {% set reviewerLabels = {
+        current: "Whoever already owns it"|t('publishr'),
+        author: "The entry’s author"|t('publishr'),
+        user: "One named person"|t('publishr'),
+        nobody: "Nobody"|t('publishr'),
+    } %}
+
+    {% set tableData = [] %}
+    {% for policy in policies %}
+        {% set named = policy.assignTo == 'user' and policy.assigneeId ? craft.users.id(policy.assigneeId).status(null).one() : null %}
+        {% set tableData = tableData|push({
+            id: policy.id,
+            title: policy.name,
+            url: url('publishr/settings/policies/' ~ policy.id),
+            status: policy.enabled,
+            interval: "{n} days"|t('publishr', { n: policy.intervalDays }),
+            covers: policy.sectionUids ? "{n} sections"|t('publishr', { n: policy.sectionUids|length }) : "everything"|t('publishr'),
+            reviewer: named ? named.friendlyName : (reviewerLabels[policy.assignTo] ?? policy.assignTo),
+        }) %}
+    {% endfor %}
+
+    {% js %}
+        new Craft.VueAdminTable({
+            container: '#pub-policies-table',
+            columns: [
+                { name: '__slot:title', title: Craft.t('publishr', 'Policy') },
+                { name: 'interval', title: Craft.t('publishr', 'Interval') },
+                { name: 'covers', title: Craft.t('publishr', 'Covers') },
+                { name: 'reviewer', title: Craft.t('publishr', 'Reviewer') },
+            ],
+            tableData: {{ tableData|json_encode|raw }},
+            emptyMessage: Craft.t('publishr', 'No policies yet.'),
+            {% if not readOnly %}
+                reorderAction: 'publishr/policies/reorder',
+                reorderSuccessMessage: Craft.t('publishr', 'Policies reordered.'),
+                reorderFailMessage: Craft.t('publishr', 'Couldn’t reorder policies.'),
+                deleteAction: 'publishr/policies/delete',
+                deleteConfirmationMessage: Craft.t('publishr', 'Are you sure you want to delete “{name}”?'),
+            {% endif %}
+        });
+    {% endjs %}
 {% endblock %}

@@ -1,6 +1,6 @@
 # Publishr changelog
 
-## 5.0.0 — 2026-08-27
+## 5.0.0 - 2026-10-03
 
 Initial release.
 

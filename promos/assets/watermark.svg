@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#ffffff">
+  <!-- The calendar glyph from ../../src/icon-mask.svg, tile stripped. Placed so its right and bottom edges run off the slide: no straight line ever closes it into a box. -->
+  <path fill-rule="evenodd" d="M33 20.5a3.5 3.5 0 0 1 7 0V27h-7ZM60 20.5a3.5 3.5 0 0 1 7 0V27h-7ZM24 27h52a7 7 0 0 1 7 7v42a7 7 0 0 1-7 7H24a7 7 0 0 1-7-7V34a7 7 0 0 1 7-7ZM22.5 44.5V76a2 2 0 0 0 2 2h51a2 2 0 0 0 2-2V44.5ZM29 52h9v8h-9ZM31.25 54.25v3.5h4.5v-3.5ZM45.5 52h9v8h-9ZM47.75 54.25v3.5h4.5v-3.5ZM62 52h9v8h-9ZM29 65h9v8h-9ZM31.25 67.25v3.5h4.5v-3.5ZM45.5 65h9v8h-9ZM47.75 67.25v3.5h4.5v-3.5ZM62 65h9v8h-9ZM64.25 67.25v3.5h4.5v-3.5Z"/>
+</svg>

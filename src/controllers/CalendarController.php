@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace justinholtweb\publishr\controllers;
 
 use Craft;
-use craft\helpers\DateTimeHelper;
 use DateTime;
 use DateTimeZone;
 use justinholtweb\publishr\models\CalendarEvent;
@@ -48,7 +47,7 @@ class CalendarController extends BaseController
             'month' => $month,
             'monthLabel' => (new DateTime(sprintf('%04d-%02d-01', $year, $month), $tz))->format('F Y'),
             'weeks' => $weeks,
-            'days' => $plugin->calendar->events($start, $end, $siteId, $lanes, $filters),
+            'days' => $this->viewable($plugin->calendar->events($start, $end, $siteId, $lanes, $filters)),
             'lanes' => $lanes,
             'allLanes' => CalendarEvent::LANES,
             'laneLabels' => $this->laneLabels(),
@@ -82,9 +81,14 @@ class CalendarController extends BaseController
         $this->requireManage();
 
         $elementId = (int)$this->request->getRequiredBodyParam('elementId');
-        $siteId = (int)($this->request->getBodyParam('siteId') ?: $this->siteId());
+        $siteId = $this->bodySiteId();
         $lane = (string)$this->request->getRequiredBodyParam('lane');
         $date = (string)$this->request->getRequiredBodyParam('date');
+
+        // An unknown lane must not fall through to whichever date the last branch writes.
+        if (!in_array($lane, CalendarEvent::LANES, true)) {
+            return $this->asFailure(Craft::t('publishr', 'That isn’t a calendar lane.'));
+        }
 
         $tz = new DateTimeZone(Craft::$app->getTimeZone());
         $target = DateTime::createFromFormat('Y-m-d H:i:s', $date . ' 09:00:00', $tz);
@@ -102,6 +106,14 @@ class CalendarController extends BaseController
                 return $this->asFailure(Craft::t('publishr', 'That isn’t being tracked.'));
             }
 
+            $tracked = $item->getElement();
+
+            if ($tracked === null) {
+                return $this->asFailure(Craft::t('publishr', 'That entry no longer exists.'));
+            }
+
+            $this->requireCanView($tracked);
+
             if ($lane === CalendarEvent::LANE_DUE) {
                 $plugin->items->setDueDate($item, $target, $this->currentUserId());
             } else {
@@ -113,9 +125,12 @@ class CalendarController extends BaseController
             return $this->asSuccess(Craft::t('publishr', 'Moved.'));
         }
 
+        // The publish and expire lanes post the element's *own* ID: dragging a draft's pip moves the
+        // draft's date, never the live entry's. Moving the canonical post date from a draft's pip
+        // would take a live article off the site.
         $entry = Craft::$app->getElements()->getElementById($elementId, \craft\elements\Entry::class, $siteId);
 
-        if ($entry === null) {
+        if ($entry === null || $entry->getIsRevision()) {
             return $this->asFailure(Craft::t('publishr', 'That entry no longer exists.'));
         }
 
@@ -240,5 +255,26 @@ class CalendarController extends BaseController
         }
 
         return ['year' => $year, 'month' => $month];
+    }
+
+    /**
+     * Drop the pips this person could not open. The calendar service also feeds front-end
+     * templates, which have no user to ask, so the check belongs here rather than in it.
+     *
+     * @param array<string, CalendarEvent[]> $days
+     * @return array<string, CalendarEvent[]>
+     */
+    private function viewable(array $days): array
+    {
+        $elements = Craft::$app->getElements();
+        $seen = [];
+
+        foreach ($days as $day => $events) {
+            $days[$day] = array_values(array_filter($events, static function(CalendarEvent $event) use ($elements, &$seen) {
+                return $seen[$event->entry->id] ??= $elements->canView($event->entry);
+            }));
+        }
+
+        return $days;
     }
 }

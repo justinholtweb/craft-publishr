@@ -229,7 +229,7 @@ class ItemsController extends BaseController
         $this->requireManage();
 
         $ids = array_map('intval', (array)$this->request->getRequiredBodyParam('elementIds'));
-        $siteId = (int)($this->request->getBodyParam('siteId') ?: $this->siteId());
+        $siteId = $this->bodySiteId();
         $action = (string)$this->request->getRequiredBodyParam('bulkAction');
 
         $done = 0;
@@ -237,8 +237,9 @@ class ItemsController extends BaseController
 
         foreach ($ids as $elementId) {
             $item = $this->plugin()->items->forElement($elementId, $siteId);
+            $entry = $item?->getElement();
 
-            if ($item === null) {
+            if ($item === null || $entry === null || !Craft::$app->getElements()->canView($entry)) {
                 $skipped[] = $elementId;
 
                 continue;
@@ -281,7 +282,7 @@ class ItemsController extends BaseController
     private function entryFromRequest(): Entry
     {
         $elementId = (int)$this->request->getRequiredBodyParam('elementId');
-        $siteId = (int)($this->request->getBodyParam('siteId') ?: $this->siteId());
+        $siteId = $this->bodySiteId();
 
         $entry = Entry::find()
             ->id($elementId)
@@ -294,6 +295,8 @@ class ItemsController extends BaseController
         if (!$entry instanceof Entry) {
             throw new BadRequestHttpException('No such entry.');
         }
+
+        $this->requireCanView($entry);
 
         return $entry;
     }

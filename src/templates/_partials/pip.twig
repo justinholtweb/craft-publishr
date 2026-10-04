@@ -1,13 +1,35 @@
-{# One pip on the calendar. Draggable only where the viewer can actually change the date. #}
+{#
+  One pip on the calendar. Draggable — and movable from the keyboard with M — only where the
+  viewer can actually change the date.
+
+  The publish and expire lanes carry the element's *own* ID, not its canonical one: a draft of a
+  live article has a post date of its own, and moving the draft's pip must move the draft, never
+  take the live entry off the site. Due and review dates live on the editorial record, which is
+  keyed on the canonical ID.
+#}
+
+{% set canMove = canMove ?? false %}
+{% set onEntry = event.lane in ['publish', 'expire'] %}
+{% set laneShort = {
+    due: "Due"|t('publishr'),
+    publish: "Pub"|t('publishr'),
+    expire: "Exp"|t('publishr'),
+    review: "Rev"|t('publishr'),
+} %}
 
 <a class="pub-pip pub-c-{{ event.color() }} {{ event.late ? 'pub-pip--late' }} {{ event.isDraft ? 'pub-pip--draft' }}"
    href="{{ event.entry.getCpEditUrl() }}"
-   draggable="true"
+   draggable="{{ canMove ? 'true' : 'false' }}"
+   {% if canMove %}aria-keyshortcuts="M" aria-describedby="pub-move-help"{% endif %}
    data-pub-pip
-   data-element-id="{{ event.entry.getCanonicalId() }}"
+   data-element-id="{{ onEntry ? event.entry.id : event.entry.getCanonicalId() }}"
    data-site-id="{{ event.entry.siteId }}"
    data-lane="{{ event.lane }}"
    data-date="{{ date }}"
    title="{{ event.entry.title }}{% if event.stage() %} · {{ event.stage().name }}{% endif %}{% if event.item and event.item.getAssignee() %} · {{ event.item.getAssignee().friendlyName }}{% endif %}">
-    <span class="pub-pip__lane">{{ event.lane|slice(0, 3) }}</span>{{ event.entry.title ?? "Untitled"|t('publishr') }}
+    <span class="pub-pip__lane" aria-hidden="true">{{ laneShort[event.lane] ?? event.lane }}</span>
+    {%- if event.late %}<span class="visually-hidden">{{ "Late:"|t('publishr') }} </span>{% endif -%}
+    {%- if event.isDraft %}<span class="visually-hidden">{{ "Draft:"|t('publishr') }} </span>{% endif -%}
+    <span class="visually-hidden">{{ laneLabel ?? event.lane|t('publishr') }}: </span>
+    {{- event.entry.title ?? "Untitled"|t('publishr') -}}
 </a>

@@ -2,6 +2,18 @@
 {% import "_includes/forms.twig" as forms %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'gates' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+{# The type chooser is a list of links, not a form. Only the settings screen needs Craft's form. #}
+{% set fullPageForm = gate.type is not empty and not readOnly %}
+
+{% set crumbs = [
+    { label: "Publishr"|t('publishr'), url: url('publishr') },
+    { label: "Requirements"|t('publishr'), url: url('publishr/settings/gates') },
+] %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
 
 {% block content %}
     {% if gate.type is empty %}
@@ -23,74 +35,84 @@
         </table>
     {% else %}
         {% if not typeAvailable %}
-            <div class="pub-note">{{ unavailableReason }}</div>
+            <p class="notice has-icon"><span class="icon" aria-hidden="true"></span><span>{{ unavailableReason }}</span></p>
         {% endif %}
 
-        <form method="post" accept-charset="UTF-8">
-            {{ csrfInput() }}
+        {% if not readOnly %}
             {{ actionInput('publishr/gates/save') }}
             {{ redirectInput('publishr/settings/gates') }}
-            <input type="hidden" name="type" value="{{ gate.type }}">
-            {% if not isNew %}<input type="hidden" name="gateId" value="{{ gate.id }}">{% endif %}
+            {{ hiddenInput('type', gate.type) }}
+            {% if not isNew %}{{ hiddenInput('gateId', gate.id) }}{% endif %}
+        {% endif %}
 
-            {{ forms.textField({
-                first: true,
-                label: "Name"|t('publishr'),
-                instructions: "What an editor sees when it fails. Write it as the thing to do."|t('publishr'),
-                name: 'name',
-                value: gate.name,
-                errors: gate.getErrors('name'),
-                required: true,
-            }) }}
+        {{ forms.textField({
+            first: true,
+            label: "Name"|t('publishr'),
+            instructions: "What an editor sees when it fails. Write it as the thing to do."|t('publishr'),
+            id: 'name',
+            name: 'name',
+            value: gate.name,
+            errors: gate.getErrors('name'),
+            autofocus: isNew,
+            required: true,
+            disabled: readOnly,
+        }) }}
 
-            {{ forms.textField({
-                label: "Handle"|t('publishr'),
-                name: 'handle',
-                value: gate.handle,
-                errors: gate.getErrors('handle'),
-                class: 'code',
-                required: true,
-            }) }}
+        {{ forms.textField({
+            label: "Handle"|t('publishr'),
+            id: 'handle',
+            name: 'handle',
+            value: gate.handle,
+            errors: gate.getErrors('handle'),
+            class: 'code',
+            required: true,
+            disabled: readOnly,
+        }) }}
 
-            {{ typeSettingsHtml|raw }}
+        {{ typeSettingsHtml|raw }}
 
-            {{ forms.selectField({
-                label: "Severity"|t('publishr'),
-                name: 'severity',
-                options: [
-                    { label: "Required — blocks sign-off"|t('publishr'), value: 'required' },
-                    { label: "Advisory — warns only"|t('publishr'), value: 'advisory' },
-                ],
-                value: gate.severity,
-            }) }}
+        {{ forms.selectField({
+            label: "Severity"|t('publishr'),
+            name: 'severity',
+            options: [
+                { label: "Required — blocks sign-off"|t('publishr'), value: 'required' },
+                { label: "Advisory — warns only"|t('publishr'), value: 'advisory' },
+            ],
+            value: gate.severity,
+            disabled: readOnly,
+        }) }}
 
-            {{ forms.checkboxSelectField({
-                label: "Sections"|t('publishr'),
-                instructions: "Leave empty to apply everywhere."|t('publishr'),
-                name: 'sectionUids',
-                options: sections|map(s => { label: s.name, value: s.uid }),
-                values: gate.sectionUids,
-                showAllOption: false,
-            }) }}
+        {{ forms.checkboxSelectField({
+            label: "Sections"|t('publishr'),
+            instructions: "Leave empty to apply everywhere."|t('publishr'),
+            name: 'sectionUids',
+            options: sections|map(s => { label: s.name, value: s.uid }),
+            values: gate.sectionUids,
+            showAllOption: false,
+            disabled: readOnly,
+        }) }}
 
-            {{ forms.checkboxSelectField({
-                label: "Stages"|t('publishr'),
-                instructions: "Leave empty to check on every gated stage."|t('publishr'),
-                name: 'stageHandles',
-                options: stages|filter(s => s.gated)|map(s => { label: s.name, value: s.handle }),
-                values: gate.stageHandles,
-                showAllOption: false,
-            }) }}
+        {{ forms.checkboxSelectField({
+            label: "Stages"|t('publishr'),
+            instructions: "Leave empty to check on every gated stage."|t('publishr'),
+            name: 'stageHandles',
+            options: stages|filter(s => s.gated)|map(s => { label: s.name, value: s.handle }),
+            values: gate.stageHandles,
+            showAllOption: false,
+            disabled: readOnly,
+        }) }}
 
-            {{ forms.lightswitchField({
-                label: "Enabled"|t('publishr'),
-                name: 'enabled',
-                on: gate.enabled,
-            }) }}
+        {{ forms.lightswitchField({
+            label: "Enabled"|t('publishr'),
+            name: 'enabled',
+            on: gate.enabled,
+            disabled: readOnly,
+        }) }}
 
-            <div class="buttons">
-                <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
-            </div>
-        </form>
+        {% if isNew and not readOnly %}
+            {% js %}
+                new Craft.HandleGenerator('#name', '#handle');
+            {% endjs %}
+        {% endif %}
     {% endif %}
 {% endblock %}

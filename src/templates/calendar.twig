@@ -6,9 +6,9 @@
 {% set query = craft.app.request.queryParams|filter((v, k) => k not in ['year', 'month', 'p']) %}
 {% set base = url('publishr/calendar', query) %}
 
-{% macro monthUrl(step, query) %}
-    {{ url('publishr/calendar/' ~ step.year ~ '/' ~ step.month, query|filter((v, k) => k not in ['year', 'month', 'p'])) }}
-{% endmacro %}
+{% macro monthUrl(step, query) -%}
+    {{- url('publishr/calendar/' ~ step.year ~ '/' ~ step.month, query|filter((v, k) => k not in ['year', 'month', 'p'])) -}}
+{%- endmacro %}
 
 {% block screenActions %}
     <a class="btn" href="{{ url('publishr/board', query) }}">{{ "Board"|t('publishr') }}</a>
@@ -19,17 +19,18 @@
         <a class="btn" href="{{ _self.monthUrl(prev, craft.app.request.queryParams) }}" aria-label="{{ 'Previous month'|t('publishr') }}">&larr;</a>
         <span class="pub-month">{{ monthLabel }}</span>
         <a class="btn" href="{{ _self.monthUrl(next, craft.app.request.queryParams) }}" aria-label="{{ 'Next month'|t('publishr') }}">&rarr;</a>
-        <a class="btn" href="{{ url('publishr/calendar') }}">{{ "Today"|t('publishr') }}</a>
+        <a class="btn" href="{{ url('publishr/calendar', query) }}">{{ "Today"|t('publishr') }}</a>
 
         <span class="pub-toolbar__spacer"></span>
 
         <div class="pub-lanes">
             {% for lane in allLanes %}
                 {% set on = lane in lanes %}
-                {% set next_lanes = on ? lanes|filter(l => l != lane) : lanes|merge([lane]) %}
+                {% set nextLanes = on ? lanes|filter(l => l != lane) : lanes|merge([lane]) %}
                 <a class="pub-lane-toggle {{ on ? 'is-on' }}"
-                   href="{{ url('publishr/calendar/' ~ year ~ '/' ~ month, craft.app.request.queryParams|merge({ lanes: next_lanes|join(',') })) }}">
+                   href="{{ url('publishr/calendar/' ~ year ~ '/' ~ month, craft.app.request.queryParams|merge({ lanes: nextLanes|join(',') })) }}">
                     {{ laneLabels[lane] }}
+                    <span class="visually-hidden">{{ on ? "(shown — select to hide)"|t('publishr') : "(hidden — select to show)"|t('publishr') }}</span>
                 </a>
             {% endfor %}
         </div>
@@ -40,7 +41,7 @@
         {% if siteHandle %}<input type="hidden" name="site" value="{{ siteHandle }}">{% endif %}
 
         <div class="select">
-            <select name="stageIds[]">
+            <select name="stageIds[]" aria-label="{{ 'Stage'|t('publishr') }}">
                 <option value="">{{ "Any stage"|t('publishr') }}</option>
                 {% for stage in stages %}
                     <option value="{{ stage.id }}" {{ stage.id in (filters.stageIds ?? []) ? 'selected' }}>{{ stage.name }}</option>
@@ -49,7 +50,7 @@
         </div>
 
         <div class="select">
-            <select name="sectionIds[]">
+            <select name="sectionIds[]" aria-label="{{ 'Section'|t('publishr') }}">
                 <option value="">{{ "Any section"|t('publishr') }}</option>
                 {% for section in sections %}
                     <option value="{{ section.id }}" {{ section.id in (filters.sectionIds ?? []) ? 'selected' }}>{{ section.name }}</option>
@@ -58,19 +59,23 @@
         </div>
 
         <div class="select">
-            <select name="assigneeId">
+            <select name="assigneeId" aria-label="{{ 'Owner'|t('publishr') }}">
                 <option value="">{{ "Anybody"|t('publishr') }}</option>
                 <option value="me" {{ (filters.assigneeId ?? null) == currentUser.id ? 'selected' }}>{{ "Me"|t('publishr') }}</option>
             </select>
         </div>
 
-        <input class="text" type="search" name="search" value="{{ filters.search ?? '' }}" placeholder="{{ 'Search'|t('publishr') }}">
+        <input class="text" type="search" name="search" value="{{ filters.search ?? '' }}" placeholder="{{ 'Search'|t('publishr') }}" aria-label="{{ 'Search'|t('publishr') }}">
         <button type="submit" class="btn">{{ "Filter"|t('publishr') }}</button>
     </form>
 
     {% if lanes is empty %}
-        <div class="pub-empty">{{ "Every lane is switched off, so there is nothing to draw. Turn one back on above."|t('publishr') }}</div>
+        <p class="zilch small">{{ "Every lane is switched off, so there is nothing to draw. Turn one back on above."|t('publishr') }}</p>
     {% else %}
+        {% if canManage %}
+            <p class="visually-hidden" id="pub-move-help">{{ "Press M to move this to another day."|t('publishr') }}</p>
+        {% endif %}
+        <div class="pub-calendar-wrap">
         <table class="pub-grid" data-pub-calendar>
             <thead>
                 <tr>
@@ -90,7 +95,7 @@
                                     <span class="pub-day__n">{{ day|date('j') }}</span>
                                     <div data-pub-day-pips>
                                         {% for event in events|slice(0, maxPerDay) %}
-                                            {% include "publishr/_partials/pip" with { event: event, date: key } only %}
+                                            {% include "publishr/_partials/pip" with { event: event, date: key, canMove: canManage, laneLabel: laneLabels[event.lane] ?? null } only %}
                                         {% endfor %}
                                     </div>
                                     {% if events|length > maxPerDay %}
@@ -103,5 +108,6 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     {% endif %}
 {% endblock %}

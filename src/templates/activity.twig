@@ -3,7 +3,7 @@
 
 {% block content %}
     {% if entries is empty %}
-        <div class="pub-empty">{{ "Nothing has happened yet."|t('publishr') }}</div>
+        <p class="zilch small">{{ "Nothing has happened yet."|t('publishr') }}</p>
     {% else %}
         <table class="data fullwidth">
             <thead>
@@ -16,7 +16,7 @@
             <tbody>
                 {% for entry in entries %}
                     <tr>
-                        <td class="light" style="white-space:nowrap;">{{ entry.dateCreated ? entry.dateCreated|datetime('short') : '—' }}</td>
+                        <td class="light nowrap">{{ entry.dateCreated ? entry.dateCreated|datetime('short') : '—' }}</td>
                         <td>{{ entry.describe() }}</td>
                         <td class="light">{{ entry.note ? entry.note|slice(0, 160) : '' }}</td>
                     </tr>

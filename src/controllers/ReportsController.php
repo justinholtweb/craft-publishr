@@ -6,6 +6,9 @@ namespace justinholtweb\publishr\controllers;
 
 use Craft;
 use craft\db\Query;
+use craft\elements\Entry;
+use craft\elements\User;
+use justinholtweb\publishr\models\Item;
 use justinholtweb\publishr\Plugin;
 use justinholtweb\publishr\records\Table;
 use yii\web\Response;
@@ -79,27 +82,67 @@ class ReportsController extends BaseController
             ->orderBy(['id' => SORT_ASC])
             ->column());
 
-        foreach ($ids as $elementId) {
-            $item = $plugin->items->forElement($elementId, $siteId);
-            $entry = $item?->getElement();
+        // Hydrated a chunk at a time — items, entries and assignees in three queries per 500 rows,
+        // not three per row. On a nine-thousand-piece site the difference is a download versus a
+        // gateway timeout.
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $items = $plugin->items->forElements($chunk, $siteId);
 
-            if ($item === null || $entry === null) {
-                continue;
+            $entries = Entry::find()
+                ->id($chunk)
+                ->siteId($siteId)
+                ->status(null)
+                ->drafts(null)
+                ->revisions(false)
+                ->limit(null)
+                ->indexBy('id')
+                ->all();
+
+            $assigneeIds = array_values(array_unique(array_filter(array_map(
+                static fn(Item $item) => $item->assigneeId,
+                $items,
+            ))));
+
+            $assignees = $assigneeIds === [] ? [] : User::find()
+                ->id($assigneeIds)
+                ->status(null)
+                ->limit(null)
+                ->indexBy('id')
+                ->all();
+
+            foreach ($chunk as $elementId) {
+                $item = $items[$elementId] ?? null;
+                $entry = $entries[$elementId] ?? null;
+
+                if ($item === null || $entry === null) {
+                    continue;
+                }
+
+                $rows[] = array_map([$this, 'cell'], [
+                    (string)$entry->title,
+                    (string)($entry->getSection()->name ?? ''),
+                    (string)($item->getStage()->name ?? ''),
+                    (string)(($assignees[$item->assigneeId] ?? null)->friendlyName ?? ''),
+                    (string)($item->dueDate?->format('Y-m-d') ?? ''),
+                    (string)$entry->getStatus(),
+                    (string)($item->reviewDue?->format('Y-m-d') ?? ''),
+                    (string)$plugin->freshness->staleness($item),
+                    (string)($entry->getUrl() ?? ''),
+                ]);
             }
-
-            $rows[] = [
-                (string)$entry->title,
-                (string)($entry->getSection()?->name ?? ''),
-                (string)($item->getStage()?->name ?? ''),
-                (string)($item->getAssignee()?->friendlyName ?? ''),
-                (string)($item->dueDate?->format('Y-m-d') ?? ''),
-                (string)$entry->getStatus(),
-                (string)($item->reviewDue?->format('Y-m-d') ?? ''),
-                (string)$plugin->freshness->staleness($item),
-                (string)($entry->getUrl() ?? ''),
-            ];
         }
 
         return $rows;
+    }
+
+    /**
+     * A cell a spreadsheet will not execute. An entry titled `=HYPERLINK(...)` is text in Craft
+     * and a formula in Excel; the leading apostrophe keeps it text.
+     */
+    private function cell(string $value): string
+    {
+        return $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)
+            ? "'" . $value
+            : $value;
     }
 }

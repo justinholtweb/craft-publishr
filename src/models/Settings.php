@@ -143,7 +143,7 @@ class Settings extends Model
             [
                 ['autoTrack', 'showUntracked', 'advanceOnPublish', 'clearDueOnPublish', 'warnOnForeignEdit',
                     'blockPublish', 'checkGatesOnSave', 'freshnessEnabled', 'notificationsEnabled',
-                    'digestEnabled', 'queueNotifications'],
+                    'digestEnabled', 'queueNotifications', ],
                 'boolean',
             ],
         ];

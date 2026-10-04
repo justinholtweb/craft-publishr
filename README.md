@@ -128,9 +128,9 @@ less often.
 
 ## Editions
 
-**Lite plans the work. Pro governs it.**
+**Lite plans the work. Pro governs it.** Lite is $59, Pro is $129.
 
-| | Lite | Pro |
+| | Lite — $59 | Pro — $129 |
 |---|---|---|
 | Month calendar, all four lanes | ✓ | ✓ |
 | Board and overview | ✓ | ✓ |

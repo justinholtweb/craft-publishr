@@ -7,7 +7,6 @@ namespace justinholtweb\publishr\gates;
 use Craft;
 use craft\elements\Entry;
 use craft\helpers\Cp;
-use craft\helpers\Html;
 use justinholtweb\publishr\models\Gate;
 use justinholtweb\publishr\models\GateResult;
 
@@ -132,6 +131,6 @@ class RequiredFields extends BaseGateType
             return trim(strip_tags($value)) === '';
         }
 
-        return $value === false || $value === 0 || $value === '';
+        return $value === false || $value === 0;
     }
 }

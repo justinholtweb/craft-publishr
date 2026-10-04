@@ -102,6 +102,11 @@ class BoardController extends BaseController
             ->indexBy('id')
             ->all();
 
+        // Never more than Craft would show this person: a section they cannot view, or a
+        // colleague's draft they are not allowed to see, is left off the list.
+        $elements = Craft::$app->getElements();
+        $entries = array_filter($entries, static fn(Entry $entry) => $elements->canView($entry));
+
         $items = $plugin->items->forElements($ids, $siteId);
         $comments = $plugin->comments->openCounts($ids, $siteId);
 

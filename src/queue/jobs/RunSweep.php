@@ -25,6 +25,15 @@ class RunSweep extends BaseJob
         $this->setProgress($queue, 1, Craft::t('publishr', '{n} notifications sent', ['n' => $result['sent']]));
     }
 
+    /**
+     * Long enough for a sweep over a large archive. The default 300 seconds lets a slow run be
+     * reserved again by a second worker while the first is still going.
+     */
+    public function getTtr(): int
+    {
+        return 1800;
+    }
+
     protected function defaultDescription(): ?string
     {
         return Craft::t('publishr', 'Publishr editorial sweep');

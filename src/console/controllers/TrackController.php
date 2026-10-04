@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace justinholtweb\publishr\console\controllers;
 
+use Craft;
 use craft\console\Controller;
+use craft\db\Query;
 use craft\elements\Entry;
 use craft\helpers\Console;
 use justinholtweb\publishr\Plugin;
+use justinholtweb\publishr\records\Table;
 use yii\console\ExitCode;
 
 /**
@@ -25,7 +28,7 @@ class TrackController extends Controller
     /** Show what would happen and write nothing. */
     public bool $dryRun = false;
 
-    /** Most entries to touch in one run. */
+    /** Most entries to touch in one run. 0 for no limit. */
     public int $limit = 1000;
 
     public $defaultAction = 'backfill';
@@ -61,20 +64,47 @@ class TrackController extends Controller
         $plugin = Plugin::getInstance();
         $settings = $plugin->getSettings();
 
+        // Every site, and only what is not tracked yet — so a second run carries on into the rest
+        // of the archive instead of re-counting the first thousand as skipped, and a multi-site
+        // install gets its other sites tracked at all.
         $query = Entry::find()
+            ->site('*')
             ->status(null)
             ->drafts(false)
             ->revisions(false)
-            ->limit($this->limit);
+            ->andWhere(['not exists', (new Query())
+                ->from(['pi' => Table::ITEMS])
+                ->where('[[pi.elementId]] = [[elements.id]]')
+                ->andWhere('[[pi.siteId]] = [[elements_sites.siteId]]'), ])
+            ->orderBy(['elements.id' => SORT_ASC])
+            ->limit($this->limit ?: null);
 
         if ($this->section !== null) {
             $query->section($this->section);
         }
 
+        // Unmanaged sections are filtered in SQL too. Skipped in PHP, a thousand of them at the
+        // front of the archive would fill every run's window.
+        if ($settings->sections !== []) {
+            $sectionIds = array_filter(array_map(
+                static fn(string $uid) => Craft::$app->getEntries()->getSectionByUid($uid)?->id,
+                $settings->sections,
+            ));
+
+            if ($sectionIds === []) {
+                $this->stdout("No managed sections exist any more. Nothing to track.\n", Console::FG_YELLOW);
+
+                return ExitCode::OK;
+            }
+
+            $query->andWhere(['entries.sectionId' => array_values($sectionIds)]);
+        }
+
         $created = 0;
         $skipped = 0;
 
-        foreach ($query->all() as $entry) {
+        foreach ($query->each(100) as $entry) {
+            /** @var Entry $entry */
             if (!$settings->managesSection($entry->getSection()?->uid)) {
                 $skipped++;
 

@@ -1,5 +1,8 @@
 ---
 title: Alarm Clock and RedPen
+slug: integrations
+order: 80
+summary: 'How Alarm Clock and RedPen plug in, and what happens without them.'
 ---
 
 # Alarm Clock and RedPen
@@ -45,7 +48,7 @@ it — otherwise the next sweep would overrule an editor, forever.
 
 ## RedPen is the QA
 
-Publishr does not check prose. [RedPen](https://justinholt.com/plugins/craft-redpen) does, it does it
+Publishr does not check prose. [RedPen](https://craft-redpen.com) does, it does it
 well, and duplicating a rule engine so that two plugins could disagree about whether "utilise" is
 acceptable would be the worst possible outcome for somebody who owns both.
 

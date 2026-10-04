@@ -2,68 +2,95 @@
 {% import "_includes/forms.twig" as forms %}
 {% set selectedSubnavItem = 'settings' %}
 {% set selectedTab = 'stages' %}
+{% set readOnly = readOnly ?? not craft.app.config.general.allowAdminChanges %}
+{% set fullPageForm = not readOnly %}
+
+{% set crumbs = [
+    { label: "Publishr"|t('publishr'), url: url('publishr') },
+    { label: "Stages"|t('publishr'), url: url('publishr/settings/stages') },
+] %}
+
+{% if readOnly %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
 
 {% block content %}
-    <form method="post" accept-charset="UTF-8">
-        {{ csrfInput() }}
+    {% if not readOnly %}
         {{ actionInput('publishr/stages/save') }}
         {{ redirectInput('publishr/settings/stages') }}
-        {% if not isNew %}<input type="hidden" name="stageId" value="{{ stage.id }}">{% endif %}
+        {% if not isNew %}{{ hiddenInput('stageId', stage.id) }}{% endif %}
+    {% endif %}
 
-        {{ forms.textField({
-            first: true,
-            label: "Name"|t('publishr'),
-            name: 'name',
-            value: stage.name,
-            errors: stage.getErrors('name'),
-            required: true,
-        }) }}
+    {{ forms.textField({
+        first: true,
+        label: "Name"|t('publishr'),
+        id: 'name',
+        name: 'name',
+        value: stage.name,
+        errors: stage.getErrors('name'),
+        autofocus: isNew,
+        required: true,
+        disabled: readOnly,
+    }) }}
 
-        {{ forms.textField({
-            label: "Handle"|t('publishr'),
-            name: 'handle',
-            value: stage.handle,
-            errors: stage.getErrors('handle'),
-            class: 'code',
-            required: true,
-        }) }}
+    {{ forms.textField({
+        label: "Handle"|t('publishr'),
+        id: 'handle',
+        name: 'handle',
+        value: stage.handle,
+        errors: stage.getErrors('handle'),
+        class: 'code',
+        required: true,
+        disabled: readOnly,
+    }) }}
 
-        {{ forms.textareaField({
-            label: "What it means"|t('publishr'),
-            instructions: "Shown to editors. A stage nobody can define is a stage everybody uses differently."|t('publishr'),
-            name: 'description',
-            value: stage.description,
-            rows: 2,
-        }) }}
+    {{ forms.textareaField({
+        label: "What it means"|t('publishr'),
+        instructions: "Shown to editors. A stage nobody can define is a stage everybody uses differently."|t('publishr'),
+        name: 'description',
+        value: stage.description,
+        rows: 2,
+        disabled: readOnly,
+    }) }}
 
-        {{ forms.selectField({
-            label: "Colour"|t('publishr'),
-            name: 'color',
-            options: colors|map(c => { label: c|title, value: c }),
-            value: stage.color,
-        }) }}
+    {# Craft's own colour picker, limited to the colours a stage can carry. #}
+    {{ forms.colorSelectField({
+        label: "Colour"|t('publishr'),
+        id: 'color',
+        name: 'color',
+        options: colors|map(c => { label: c|title|t('publishr'), value: c, data: { color: c } }),
+        withBlankOption: false,
+        value: stage.color,
+        errors: stage.getErrors('color'),
+        disabled: readOnly,
+    }) }}
 
-        {{ forms.lightswitchField({
-            label: "Where new work starts"|t('publishr'),
-            name: 'isDefault',
-            on: stage.isDefault,
-        }) }}
+    {{ forms.lightswitchField({
+        label: "Where new work starts"|t('publishr'),
+        name: 'isDefault',
+        on: stage.isDefault,
+        disabled: readOnly,
+    }) }}
 
-        {{ forms.lightswitchField({
-            label: "This is the published stage"|t('publishr'),
-            instructions: "Pieces are moved here automatically when they actually go live."|t('publishr'),
-            name: 'isPublished',
-            on: stage.isPublished,
-        }) }}
+    {{ forms.lightswitchField({
+        label: "This is the published stage"|t('publishr'),
+        instructions: "Pieces are moved here automatically when they actually go live."|t('publishr'),
+        name: 'isPublished',
+        on: stage.isPublished,
+        errors: stage.getErrors('isPublished'),
+        disabled: readOnly,
+    }) }}
 
-        {{ forms.lightswitchField({
-            label: "Check publish requirements before anything moves here"|t('publishr'),
-            name: 'gated',
-            on: stage.gated,
-        }) }}
+    {{ forms.lightswitchField({
+        label: "Check publish requirements before anything moves here"|t('publishr'),
+        name: 'gated',
+        on: stage.gated,
+        disabled: readOnly,
+    }) }}
 
-        <div class="buttons">
-            <button type="submit" class="btn submit">{{ "Save"|t('publishr') }}</button>
-        </div>
-    </form>
+    {% if isNew and not readOnly %}
+        {% js %}
+            new Craft.HandleGenerator('#name', '#handle');
+        {% endjs %}
+    {% endif %}
 {% endblock %}
