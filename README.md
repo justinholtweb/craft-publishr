@@ -29,6 +29,11 @@ entry is exactly as public as it was.
 **Assignments and deadlines.** Who owns this, and when is it due. Separate from the entry's author,
 because the person who wrote it in March is rarely the person fixing it in October.
 
+**In Craft's own entries index.** Stage, assignee and due-date columns (and card attributes), plus
+three condition rules — *Editorial stage*, *Assigned to me* and *Overdue* — for the filter bar and
+for custom sources. "My late work" is a sidebar source every editor can share, because *me* is
+resolved for whoever is looking.
+
 **Editorial comments.** A threaded conversation about a piece, stored beside it rather than in a
 field on it — so it never renders on the site, never lands in a revision, and survives the draft it
 was written against being applied and thrown away. `@name` tells somebody.
@@ -137,6 +142,7 @@ less often.
 | Editorial stages | up to 5 | unlimited |
 | Assignments and deadlines | ✓ | ✓ |
 | Editorial comments | ✓ | ✓ |
+| Entries index columns and condition rules | ✓ | ✓ |
 | Stage history and activity log | ✓ | ✓ |
 | Publish requirements | | ✓ |
 | Freshness reviews and policies | | ✓ |

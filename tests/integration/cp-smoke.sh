@@ -127,6 +127,41 @@ else
     echo "  · no entry found to check the sidebar panel against"
 fi
 
+# The entries index, with Publishr's columns shown and its rules in the filter. The index is drawn
+# by an Ajax action, not by the page, so this posts to it the way Craft's own JavaScript does.
+sleep "$PAUSE"
+csrf=$(curl -s -L -b "$JAR" -c "$JAR" "$BASE/admin/entries" | grep -oE 'csrfTokenValue":"[^"]+' | head -1 | cut -d'"' -f3)
+
+index_body=$(curl -s -b "$JAR" -c "$JAR" -H 'Accept: application/json' -w $'\n%{http_code}' \
+    --data-urlencode "CRAFT_CSRF_TOKEN=$csrf" \
+    --data-urlencode 'elementType=craft\elements\Entry' \
+    --data-urlencode 'source=*' \
+    --data-urlencode 'context=index' \
+    --data-urlencode 'viewState[mode]=table' \
+    --data-urlencode 'viewState[static]=0' \
+    --data-urlencode 'viewState[tableColumns][]=publishrStage' \
+    --data-urlencode 'viewState[tableColumns][]=publishrAssignee' \
+    --data-urlencode 'viewState[tableColumns][]=publishrDueDate' \
+    --data-urlencode 'filterConfig[class]=craft\elements\conditions\entries\EntryCondition' \
+    --data-urlencode 'filterConfig[conditionRules][0][class]=justinholtweb\publishr\conditions\StageConditionRule' \
+    --data-urlencode 'filterConfig[conditionRules][0][operator]=notempty' \
+    --data-urlencode 'filterConfig[conditionRules][1][class]=justinholtweb\publishr\conditions\OverdueConditionRule' \
+    --data-urlencode 'filterConfig[conditionRules][1][value]=0' \
+    --data-urlencode 'filterConfig[conditionRules][2][class]=justinholtweb\publishr\conditions\AssignedToMeConditionRule' \
+    --data-urlencode 'filterConfig[conditionRules][2][value]=0' \
+    "$BASE/admin/actions/element-indexes/get-elements")
+index_code="${index_body##*$'\n'}"
+index_body="${index_body%$'\n'*}"
+
+if [ "$index_code" = "200" ] && [[ "$index_body" == *'"html"'* ]] && [[ "$index_body" == *'Editorial stage'* ]]; then
+    echo "  ✓ the entries index, with Publishr's columns and rules"
+    pass=$((pass + 1))
+else
+    echo "  ✗ the entries index, with Publishr's columns and rules — HTTP $index_code"
+    echo "$index_body" | head -c 400; echo
+    fail=$((fail + 1))
+fi
+
 # ---------------------------------------------------------------- the licence boundary
 #
 # The Pro screens have to be *refused* under Lite, not merely empty. A settings screen that renders

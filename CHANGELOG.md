@@ -1,5 +1,16 @@
 # Publishr changelog
 
+## Unreleased
+
+### Added
+
+- **Publishr in Craft's own entries index.** Editorial stage, Assignee and Due columns (and card
+  attributes on Craft 5.5+), loaded once per page rather than once per row, and empty for anybody
+  without *See the editorial calendar*.
+- **Condition rules** for the entries filter bar and custom sources: *Editorial stage* (is / is not /
+  is empty / has a value), *Assigned to me* (resolved for whoever is looking) and *Overdue* (the same
+  rule as the navigation badge). Stages are saved by UID so a source survives a deploy.
+
 ## 5.0.0 - 2026-10-03
 
 Initial release.

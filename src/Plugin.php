@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace justinholtweb\publishr;
 
 use Craft;
+use craft\base\conditions\BaseCondition;
 use craft\base\Element;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
+use craft\elements\conditions\entries\EntryCondition;
 use craft\elements\Entry;
+use craft\events\DefineAttributeHtmlEvent;
 use craft\events\DefineHtmlEvent;
 use craft\events\ModelEvent;
 use craft\events\RebuildConfigEvent;
+use craft\events\RegisterConditionRulesEvent;
+use craft\events\RegisterElementCardAttributesEvent;
+use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\helpers\Queue;
@@ -22,12 +28,16 @@ use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use craft\web\View;
+use justinholtweb\publishr\conditions\AssignedToMeConditionRule;
+use justinholtweb\publishr\conditions\OverdueConditionRule;
+use justinholtweb\publishr\conditions\StageConditionRule;
 use justinholtweb\publishr\integrations\AlarmClock;
 use justinholtweb\publishr\models\Edition;
 use justinholtweb\publishr\models\Settings;
 use justinholtweb\publishr\queue\jobs\RunSweep;
 use justinholtweb\publishr\services\Calendar;
 use justinholtweb\publishr\services\Comments;
+use justinholtweb\publishr\services\EntryIndex;
 use justinholtweb\publishr\services\Freshness;
 use justinholtweb\publishr\services\Gates;
 use justinholtweb\publishr\services\Governance;
@@ -53,6 +63,7 @@ use yii\base\Event;
  * @property-read Notifications $notifications
  * @property-read Governance $governance
  * @property-read Sweep $sweep
+ * @property-read EntryIndex $entryIndex
  * @property-read Settings $settings
  *
  * @method Settings getSettings()
@@ -96,6 +107,7 @@ class Plugin extends BasePlugin
                 'notifications' => Notifications::class,
                 'governance' => Governance::class,
                 'sweep' => Sweep::class,
+                'entryIndex' => EntryIndex::class,
             ],
         ];
     }
@@ -240,6 +252,7 @@ class Plugin extends BasePlugin
         $this->registerEntrySidebar();
         $this->registerEntrySave();
         $this->registerPublishGuard();
+        $this->registerEntryIndex();
     }
 
     /**
@@ -421,6 +434,53 @@ class Plugin extends BasePlugin
             if ($report->blocking() !== []) {
                 $event->isValid = false;
             }
+        });
+    }
+
+    /**
+     * Stage, assignee and due date in Craft's own entries index — as columns, as card attributes,
+     * and as condition rules ("Editorial stage", "Assigned to me", "Overdue") for the filter bar
+     * and custom sources.
+     *
+     * Lite, because it is the calendar's data in a place editors already look. The cells render
+     * empty for anybody without "See the editorial calendar". The *rules* are always registered:
+     * a rule Craft cannot resolve for the person looking is dropped from a saved custom source,
+     * which would quietly widen "Late work" to every entry on the site.
+     */
+    private function registerEntryIndex(): void
+    {
+        Event::on(Entry::class, Element::EVENT_REGISTER_TABLE_ATTRIBUTES, function(RegisterElementTableAttributesEvent $event) {
+            $event->tableAttributes += $this->entryIndex->tableAttributes();
+        });
+
+        // Card attributes arrived in Craft 5.5; Publishr supports 5.3.
+        if (defined(Element::class . '::EVENT_REGISTER_CARD_ATTRIBUTES')) {
+            Event::on(Entry::class, Element::EVENT_REGISTER_CARD_ATTRIBUTES, function(RegisterElementCardAttributesEvent $event) {
+                $event->cardAttributes += $this->entryIndex->cardAttributes();
+            });
+        }
+
+        Event::on(Entry::class, Element::EVENT_DEFINE_ATTRIBUTE_HTML, function(DefineAttributeHtmlEvent $event) {
+            if (!$this->entryIndex->isAttribute($event->attribute)) {
+                return;
+            }
+
+            /** @var Entry $entry */
+            $entry = $event->sender;
+
+            try {
+                $event->html = $this->entryIndex->attributeHtml($entry, $event->attribute);
+            } catch (Throwable $e) {
+                // A broken cell must never take down somebody's entries index.
+                Craft::warning('Publishr could not render an index column: ' . $e->getMessage(), self::LOG_CATEGORY);
+                $event->html = '';
+            }
+        });
+
+        Event::on(EntryCondition::class, BaseCondition::EVENT_REGISTER_CONDITION_RULES, function(RegisterConditionRulesEvent $event) {
+            $event->conditionRules[] = StageConditionRule::class;
+            $event->conditionRules[] = AssignedToMeConditionRule::class;
+            $event->conditionRules[] = OverdueConditionRule::class;
         });
     }
 

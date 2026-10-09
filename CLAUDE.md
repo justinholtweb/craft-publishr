@@ -72,6 +72,17 @@ never `use` a class from it — a hard reference makes the autoloader look for a
 installed, which is a fatal error on the *entry editor*. Both check for the **service**
 (`$plugin->has('review')`), not just the plugin row.
 
+### The entries index (columns + condition rules)
+
+`services\EntryIndex` adds Stage/Assignee/Due columns and card attributes to Craft's Entries
+index, and `conditions\*` adds *Editorial stage*, *Assigned to me* and *Overdue* to
+`EntryCondition`. Cells load the whole page's items (and assignees) once via
+`elementQueryResult`, keyed on the canonical ID so draft rows resolve. The rules are correlated
+`EXISTS` subqueries on `COALESCE(elements.canonicalId, elements.id)` + `elements_sites.siteId`, and
+every rule's `matchElement()` is checked against its SQL in `entry-index.php`. The rules are
+**always selectable** — a rule `isSelectable()` hides is *dropped* from a saved custom source, which
+widens it to every entry.
+
 ### "I don't know" is never "no"
 
 A gate that cannot run returns `SKIPPED`, and `GateResult::blocks()` returns false for it. A gate
@@ -177,6 +188,7 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 ```sh
 cd ~/Sites/plugin-testing
 ddev exec php /var/www/craft-publishr/tests/integration/checks.php   # 71 checks
+ddev exec php /var/www/craft-publishr/tests/integration/entry-index.php  # index columns + condition rules
 ddev exec bash /var/www/craft-publishr/tests/integration/cp-smoke.sh # 22 CP screens + the Lite boundary
 ddev exec bash -c 'find /var/www/craft-publishr/src -name "*.php" -print0 | xargs -0 -n1 php -l'
 ddev exec php craft publishr/sweep/status
