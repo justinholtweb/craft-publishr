@@ -628,6 +628,12 @@ check('an unpublished piece is not given a review date by the sweep', function()
     $unpublished = $makeEntry("Publishr unpublished $suffix", null, false);
     $item = $plugin->items->forEntry($unpublished, true);
 
+    // The sweep takes a bounded window and resumes from a cached cursor. The harness holds far
+    // more unscheduled items than one window, so start it just before this run's fixtures — or it
+    // may never reach them, and this check (and the staleness one after it) pass or fail by luck.
+    $old = $plugin->items->forEntry(Entry::find()->title("Publishr old $suffix")->status(null)->one());
+    Craft::$app->getCache()->set('publishr:freshness-cursor', min((int)$old?->id, (int)$item->id) - 1);
+
     $plugin->freshness->sweep();
 
     return $plugin->items->forEntry($unpublished)->reviewDue === null
