@@ -1,7 +1,7 @@
 {
     "name": "justinholtweb/craft-publishr",
     "description": "Editorial calendar and content governance for Craft CMS — a month view of everything in flight, custom editorial stages, assignments, due dates, publish requirements and freshness reviews.",
-    "version": "5.0.0",
+    "version": "5.1.0",
     "type": "craft-plugin",
     "keywords": [
         "craftcms",

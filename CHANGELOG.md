@@ -1,7 +1,6 @@
 # Publishr changelog
 
-## Unreleased
-
+## 5.1.0 - 2026-10-09
 ### Added
 
 - **Publishr in Craft's own entries index.** Editorial stage, Assignee and Due columns (and card
